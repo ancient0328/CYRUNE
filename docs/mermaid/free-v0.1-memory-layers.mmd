@@ -1,0 +1,14 @@
+flowchart LR
+  subgraph TURN["One Turn"]
+    CC["context clear"] --> W["Working<br/>10 +/- 2<br/>current decision set"]
+  end
+
+  W --> P["Processing<br/>42 days<br/>mid-term retrieval"]
+  P --> W
+
+  P -. "manual promote only" .-> PM["Permanent<br/>non-expiring<br/>long-term knowledge"]
+  PM --> W
+
+  X["Runtime / Terminal"] -. "direct write forbidden" .-> W
+  X -. "direct write forbidden" .-> P
+  X -. "direct write forbidden" .-> PM

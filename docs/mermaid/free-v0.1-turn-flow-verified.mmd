@@ -1,0 +1,25 @@
+sequenceDiagram
+  participant U as User
+  participant R as Runtime
+  participant CP as Control Plane
+  participant RES as Resolver
+  participant KA as Kernel Adapter
+  participant EA as Execution Adapter
+  participant L as Evidence Ledger
+
+  U->>R: input
+  R->>CP: RunRequest
+  CP->>CP: context clear
+  CP->>RES: resolve(policy, binding)
+  RES-->>CP: effective config
+  CP->>KA: rebuild working / query memory
+  KA-->>CP: working candidates / citations
+  CP->>CP: pre-check(policy, capability, working)
+  CP->>EA: execute(No-LLM or approved adapter)
+  EA-->>CP: result + citations
+  CP->>CP: citation validate + fail-closed
+  CP->>L: atomic commit
+  L-->>CP: evidence_id
+  CP->>CP: update working.json
+  CP-->>R: RunAccepted or RunRejected
+  R-->>U: output

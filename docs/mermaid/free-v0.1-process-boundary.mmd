@@ -1,0 +1,28 @@
+flowchart LR
+  subgraph UI["UI Process (Unprivileged)"]
+    T["CYRUNE Terminal"]
+    C["cyr CLI"]
+  end
+
+  subgraph CORE["Control Process (Gated)"]
+    D["cyrune-daemon"]
+    CP["Control Plane"]
+    GW["Gate / Policy / Capability"]
+    LG["Ledger Writer (atomic)"]
+  end
+
+  subgraph EXT["External Resources"]
+    FS["Filesystem"]
+    NET["Network"]
+    ST["Store / Index / Vault"]
+  end
+
+  T --> C
+  C --> D
+  D --> CP
+  CP --> GW
+  CP --> LG
+  CP --> FS
+  CP --> NET
+  CP --> ST
+

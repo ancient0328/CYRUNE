@@ -1,0 +1,23 @@
+{
+  "distro_id": "cyrune-free",
+  "binding_id": "cyrune-free-shipping.v0.1",
+  "version": "v0.1",
+  "resolution_mode": "single",
+  "layers": {
+    "working": {
+      "adapter_ids": [
+        "memory-kv-inmem"
+      ]
+    },
+    "processing": {
+      "adapter_ids": [
+        "memory-redb-processing"
+      ]
+    },
+    "permanent": {
+      "adapter_ids": [
+        "memory-stoolap-permanent"
+      ]
+    }
+  }
+}

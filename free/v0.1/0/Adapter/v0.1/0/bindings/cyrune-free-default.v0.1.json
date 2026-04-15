@@ -1,0 +1,24 @@
+{
+  "distro_id": "cyrune-free",
+  "binding_id": "cyrune-free-default",
+  "version": "v0.1",
+  "resolution_mode": "single",
+  "layers": {
+    "working": {
+      "adapter_ids": [
+        "memory-kv-inmem"
+      ]
+    },
+    "processing": {
+      "adapter_ids": [
+        "memory-kv-inmem"
+      ]
+    },
+    "permanent": {
+      "adapter_ids": [
+        "memory-kv-inmem"
+      ]
+    }
+  }
+}
+

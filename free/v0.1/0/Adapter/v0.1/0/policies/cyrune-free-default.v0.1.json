@@ -1,0 +1,26 @@
+{
+  "distro_id": "cyrune-free",
+  "policy_pack_id": "cyrune-free-default",
+  "version": "v0.1",
+  "layers": {
+    "working": {
+      "target_items": 10,
+      "ttl_ms": 3600000,
+      "eviction_strategy": "priority"
+    },
+    "processing": {
+      "target_items": 20000,
+      "ttl_ms": 3628800000,
+      "promotion_threshold": 0.8
+    },
+    "permanent": {
+      "retention_mode": "immutable"
+    }
+  },
+  "fail_closed": {
+    "on_capacity_out_of_range": true,
+    "on_ttl_out_of_range": true,
+    "on_missing_capability": true
+  }
+}
+

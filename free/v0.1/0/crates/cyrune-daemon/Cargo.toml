@@ -1,0 +1,21 @@
+[package]
+name = "cyrune-daemon"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+cyrune-control-plane = { path = "../cyrune-control-plane" }
+cyrune-core-contract = { path = "../cyrune-core-contract" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+thiserror = "2"
+time = { version = "0.3", features = ["formatting"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

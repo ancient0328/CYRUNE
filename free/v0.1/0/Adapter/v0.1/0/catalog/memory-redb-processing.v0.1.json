@@ -1,0 +1,60 @@
+{
+  "adapter_id": "memory-redb-processing",
+  "version": "v0.1",
+  "layers": {
+    "working": {
+      "limits": {
+        "min_items": 0,
+        "max_items": 0,
+        "min_ttl_ms": 0,
+        "max_ttl_ms": 0
+      },
+      "capabilities": {
+        "supports_eviction": false,
+        "supports_promotion": false,
+        "supports_demotion": false,
+        "supports_vector_search": false
+      },
+      "performance_profile": {
+        "read_latency_p95_ms": 0.0,
+        "write_latency_p95_ms": 0.0
+      }
+    },
+    "processing": {
+      "limits": {
+        "min_items": 0,
+        "max_items": 200000,
+        "min_ttl_ms": 0,
+        "max_ttl_ms": 7776000000
+      },
+      "capabilities": {
+        "supports_eviction": true,
+        "supports_promotion": true,
+        "supports_demotion": true,
+        "supports_vector_search": true
+      },
+      "performance_profile": {
+        "read_latency_p95_ms": 3.0,
+        "write_latency_p95_ms": 6.0
+      }
+    },
+    "permanent": {
+      "limits": {
+        "min_items": 0,
+        "max_items": 0,
+        "min_ttl_ms": 0,
+        "max_ttl_ms": 0
+      },
+      "capabilities": {
+        "supports_eviction": false,
+        "supports_promotion": false,
+        "supports_demotion": false,
+        "supports_vector_search": false
+      },
+      "performance_profile": {
+        "read_latency_p95_ms": 0.0,
+        "write_latency_p95_ms": 0.0
+      }
+    }
+  }
+}

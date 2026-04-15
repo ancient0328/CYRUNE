@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crane.local/adapter/v0.1/schemas/adapter-capability.schema.json",
+  "title": "Adapter Capability Manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["adapter_id", "version", "layers"],
+  "properties": {
+    "adapter_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!cyrune-)(?!forge-)[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^v[0-9]+\\.[0-9]+$"
+    },
+    "layers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["working", "processing", "permanent"],
+      "properties": {
+        "working": { "$ref": "#/$defs/layer_capability" },
+        "processing": { "$ref": "#/$defs/layer_capability" },
+        "permanent": { "$ref": "#/$defs/layer_capability" }
+      }
+    }
+  },
+  "$defs": {
+    "layer_capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["limits", "capabilities", "performance_profile"],
+      "properties": {
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["min_items", "max_items", "min_ttl_ms", "max_ttl_ms"],
+          "properties": {
+            "min_items": { "type": "integer", "minimum": 0 },
+            "max_items": { "type": "integer", "minimum": 0 },
+            "min_ttl_ms": { "type": "integer", "minimum": 0 },
+            "max_ttl_ms": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "supports_eviction",
+            "supports_promotion",
+            "supports_demotion",
+            "supports_vector_search"
+          ],
+          "properties": {
+            "supports_eviction": { "type": "boolean" },
+            "supports_promotion": { "type": "boolean" },
+            "supports_demotion": { "type": "boolean" },
+            "supports_vector_search": { "type": "boolean" }
+          }
+        },
+        "performance_profile": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["read_latency_p95_ms", "write_latency_p95_ms"],
+          "properties": {
+            "read_latency_p95_ms": { "type": "number", "minimum": 0 },
+            "write_latency_p95_ms": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}

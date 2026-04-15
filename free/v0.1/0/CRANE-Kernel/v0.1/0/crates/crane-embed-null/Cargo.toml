@@ -1,0 +1,12 @@
+[package]
+name = "crane-embed-null"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+crane-kernel = { path = "../crane-kernel" }
+
+[lints]
+workspace = true
+

@@ -1,0 +1,19 @@
+flowchart LR
+  A["User Request"] --> B["Boundary Enforcement"]
+  B --> C["Allowed Execution"]
+  C --> D["Citation-bound Result"]
+  D --> E["Atomic Evidence"]
+  E --> F["Accepted / Rejected Outcome"]
+
+  B --- B1["classification"]
+  B --- B2["capability gate"]
+  B --- B3["working rebuild"]
+
+  C --- C1["No-LLM"]
+  C --- C2["Approved adapter"]
+
+  E --- E1["manifest"]
+  E --- E2["policy"]
+  E --- E3["hashes"]
+  E --- E4["citation bundle"]
+  E --- E5["working delta"]

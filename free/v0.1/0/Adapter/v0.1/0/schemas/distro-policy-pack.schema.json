@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crane.local/adapter/v0.1/schemas/distro-policy-pack.schema.json",
+  "title": "Distro Policy Pack v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "distro_id",
+    "policy_pack_id",
+    "version",
+    "layers",
+    "fail_closed"
+  ],
+  "properties": {
+    "distro_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy_pack_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^v[0-9]+\\.[0-9]+$"
+    },
+    "layers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["working", "processing", "permanent"],
+      "properties": {
+        "working": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["target_items", "ttl_ms", "eviction_strategy"],
+          "properties": {
+            "target_items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "ttl_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "eviction_strategy": {
+              "type": "string",
+              "enum": ["lru", "fifo", "priority", "manual"]
+            }
+          }
+        },
+        "processing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["target_items", "ttl_ms", "promotion_threshold"],
+          "properties": {
+            "target_items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "ttl_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "promotion_threshold": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "permanent": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["retention_mode"],
+          "properties": {
+            "retention_mode": {
+              "type": "string",
+              "enum": ["immutable", "versioned", "governed"]
+            }
+          }
+        }
+      }
+    },
+    "fail_closed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "on_capacity_out_of_range",
+        "on_ttl_out_of_range",
+        "on_missing_capability"
+      ],
+      "properties": {
+        "on_capacity_out_of_range": { "type": "boolean" },
+        "on_ttl_out_of_range": { "type": "boolean" },
+        "on_missing_capability": { "type": "boolean" }
+      }
+    }
+  }
+}
+

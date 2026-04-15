@@ -1,0 +1,21 @@
+flowchart TB
+  U["User"] --> R["Runtime / cyr / Terminal"]
+  R --> CP["Control Plane"]
+
+  CP --> RES["Resolver<br/>policy + binding -> effective config"]
+  CP --> WG["Working Projection<br/>10 +/- 2"]
+  CP --> PG["Policy Gate<br/>default deny"]
+  CP --> CV["Citation Validate"]
+  CP --> EL["Evidence Ledger<br/>append-only / atomic"]
+
+  CP --> KA["Kernel Adapter"]
+  KA --> MEM["CRANE Contract<br/>Working / Processing / Permanent"]
+
+  CP --> EA["Execution Adapter"]
+  EA --> NLLM["No-LLM Path"]
+  EA --> LLM["Approved LLM / Connector"]
+
+  CV --> EL
+  EL --> OUT["Accepted / Rejected"]
+  OUT --> R
+  R --> U

@@ -1,0 +1,26 @@
+sequenceDiagram
+  participant User
+  participant Terminal as CYRUNE Terminal
+  participant CLI as cyr
+  participant Daemon as cyrune-daemon
+  participant CP as Control Plane
+  participant Adapter as LLM/No-LLM Adapter
+  participant Ledger as Evidence Ledger
+
+  User->>Terminal: Input
+  Terminal->>CLI: Dispatch
+  CLI->>Daemon: Run request
+  Daemon->>CP: Start turn
+  CP->>CP: Context clear
+  CP->>CP: Working rebuild (max 12 slots)
+  CP->>CP: Classification + policy pre-check
+  CP->>Adapter: Execute
+  Adapter-->>CP: Result + citations
+  CP->>CP: Citation validate + fail-closed
+  CP->>Ledger: Atomic commit (tmp -> fsync -> rename)
+  Ledger-->>CP: Evidence ID
+  CP-->>Daemon: Accepted output
+  Daemon-->>CLI: Output + evidence ref
+  CLI-->>Terminal: Render
+  Terminal-->>User: Response
+

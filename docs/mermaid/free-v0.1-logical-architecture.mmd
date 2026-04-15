@@ -1,0 +1,17 @@
+flowchart TD
+  U["User"] --> T["CYRUNE Terminal / CLI"]
+  T --> C["cyr (single entry command)"]
+  C --> D["cyrune-daemon"]
+
+  D --> CP["Control Plane"]
+  CP --> W["Working rebuild (10±2)"]
+  CP --> P["Policy + Capability check (deny-by-default)"]
+  CP --> X["LLM/No-LLM execution via adapter"]
+  CP --> G["Citation validation + Fail-closed Gate"]
+  CP --> L["Evidence Ledger atomic commit"]
+
+  CP --> A["Adapter Layer"]
+  A --> A1["LLM Adapter (detachable)"]
+  A --> A2["Memory Adapter (W/P/P contract)"]
+  A --> A3["Connector Adapter"]
+

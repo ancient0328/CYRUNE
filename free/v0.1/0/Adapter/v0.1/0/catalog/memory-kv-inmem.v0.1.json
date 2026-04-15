@@ -1,0 +1,61 @@
+{
+  "adapter_id": "memory-kv-inmem",
+  "version": "v0.1",
+  "layers": {
+    "working": {
+      "limits": {
+        "min_items": 0,
+        "max_items": 64,
+        "min_ttl_ms": 0,
+        "max_ttl_ms": 86400000
+      },
+      "capabilities": {
+        "supports_eviction": true,
+        "supports_promotion": true,
+        "supports_demotion": true,
+        "supports_vector_search": true
+      },
+      "performance_profile": {
+        "read_latency_p95_ms": 1.0,
+        "write_latency_p95_ms": 2.0
+      }
+    },
+    "processing": {
+      "limits": {
+        "min_items": 0,
+        "max_items": 200000,
+        "min_ttl_ms": 0,
+        "max_ttl_ms": 7776000000
+      },
+      "capabilities": {
+        "supports_eviction": true,
+        "supports_promotion": true,
+        "supports_demotion": true,
+        "supports_vector_search": true
+      },
+      "performance_profile": {
+        "read_latency_p95_ms": 2.0,
+        "write_latency_p95_ms": 4.0
+      }
+    },
+    "permanent": {
+      "limits": {
+        "min_items": 0,
+        "max_items": 2000000,
+        "min_ttl_ms": 0,
+        "max_ttl_ms": 0
+      },
+      "capabilities": {
+        "supports_eviction": false,
+        "supports_promotion": false,
+        "supports_demotion": false,
+        "supports_vector_search": true
+      },
+      "performance_profile": {
+        "read_latency_p95_ms": 5.0,
+        "write_latency_p95_ms": 8.0
+      }
+    }
+  }
+}
+

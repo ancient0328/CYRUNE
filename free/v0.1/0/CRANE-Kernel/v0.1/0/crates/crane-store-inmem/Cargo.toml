@@ -1,0 +1,12 @@
+[package]
+name = "crane-store-inmem"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+crane-kernel = { path = "../crane-kernel" }
+
+[lints]
+workspace = true
+
