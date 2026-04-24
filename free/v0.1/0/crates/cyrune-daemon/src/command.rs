@@ -1164,24 +1164,31 @@ fn unresolved_selected_execution_adapter(
     None
 }
 
+fn crane_root_from_ancestors(path: &Path) -> Option<PathBuf> {
+    for ancestor in path.ancestors() {
+        if ancestor.join("Adapter").join("v0.1").join("0").exists() {
+            return Some(ancestor.to_path_buf());
+        }
+    }
+    None
+}
+
 fn detect_crane_root() -> Result<PathBuf, CommandError> {
     if let Some(path) = env::var_os("CRANE_ROOT") {
         return Ok(PathBuf::from(path));
     }
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    for ancestor in manifest_dir.ancestors() {
-        if ancestor.join("Adapter").join("v0.1").join("0").exists() {
-            return Ok(ancestor.to_path_buf());
+    if let Ok(executable_path) = env::current_exe() {
+        if let Some(root) = crane_root_from_ancestors(&executable_path) {
+            return Ok(root);
         }
     }
     let cwd = env::current_dir()?;
-    for ancestor in cwd.ancestors() {
-        if ancestor.join("Adapter").join("v0.1").join("0").exists() {
-            return Ok(ancestor.to_path_buf());
-        }
+    if let Some(root) = crane_root_from_ancestors(&cwd) {
+        return Ok(root);
     }
     Err(CommandError::Invalid(
-        "CRANE_ROOT could not be detected from environment or workspace".to_string(),
+        "CRANE_ROOT could not be detected from environment, executable path, or workspace"
+            .to_string(),
     ))
 }
 

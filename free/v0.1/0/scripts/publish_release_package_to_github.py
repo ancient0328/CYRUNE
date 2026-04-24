@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import base64
 import hashlib
 import json
 import ssl
 import subprocess
-import sys
 import tarfile
+import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -102,6 +103,14 @@ class ReleaseAsset:
     download_url: str
 
 
+@dataclass(frozen=True)
+class ReleaseBaseline:
+    main_commit_sha: str
+    tag_sha: str | None
+    release_exists: bool
+    rollback_asset_path: Path | None
+
+
 def run(
     cmd: list[str],
     *,
@@ -157,7 +166,11 @@ def gh_api(
     return json.loads(stdout)
 
 
-def resolve_roots() -> Roots:
+def resolve_roots(
+    *,
+    require_publication_roots: bool = True,
+    require_package_asset: bool = True,
+) -> Roots:
     script_path = Path(__file__).resolve()
     script_dir = script_path.parent
     standalone_root = script_dir.parent
@@ -180,17 +193,25 @@ def resolve_roots() -> Roots:
 
     package_asset = standalone_root / "target" / "shipping" / "S2" / ASSET_FILENAME
 
-    for path in (package_asset, public_root, public_branch_root):
-        if not path.exists():
-            raise fail(f"missing required path: {path}")
-        if path.is_symlink():
-            raise fail(f"symlink is forbidden: {path}")
-    if not package_asset.is_file():
+    if require_package_asset:
+        for path in (package_asset,):
+            if not path.exists():
+                raise fail(f"missing required path: {path}")
+            if path.is_symlink():
+                raise fail(f"symlink is forbidden: {path}")
+    if require_publication_roots:
+        for path in (public_root, public_branch_root):
+            if not path.exists():
+                raise fail(f"missing required path: {path}")
+            if path.is_symlink():
+                raise fail(f"symlink is forbidden: {path}")
+    if require_package_asset and not package_asset.is_file():
         raise fail(f"required path must be a regular file: {package_asset}")
-    if not public_root.is_dir():
-        raise fail(f"required path must be a directory: {public_root}")
-    if not public_branch_root.is_dir():
-        raise fail(f"required path must be a directory: {public_branch_root}")
+    if require_publication_roots:
+        if not public_root.is_dir():
+            raise fail(f"required path must be a directory: {public_root}")
+        if not public_branch_root.is_dir():
+            raise fail(f"required path must be a directory: {public_branch_root}")
 
     if package_asset.name != ASSET_FILENAME:
         raise fail(f"unexpected package asset filename: {package_asset.name}")
@@ -696,6 +717,141 @@ def rollback_to_bootstrap_state(commit_sha: str) -> None:
     raise fail(f"rollback to bootstrap state failed: {last_error}")
 
 
+def download_url_to_path(url: str, destination: Path) -> None:
+    last_error: Exception | None = None
+    ssl_context = build_ssl_context()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    for attempt in range(URL_RETRY_COUNT):
+        request = Request(url, method="GET")
+        try:
+            with urlopen(request, context=ssl_context, timeout=60) as response:
+                if response.status != 200:
+                    raise fail(f"url not reachable: {url} status={response.status}")
+                with destination.open("wb") as fh:
+                    while True:
+                        chunk = response.read(1024 * 1024)
+                        if not chunk:
+                            break
+                        fh.write(chunk)
+            return
+        except (HTTPError, URLError, TimeoutError, RuntimeError) as exc:
+            last_error = exc
+            if destination.exists():
+                destination.unlink()
+            if attempt + 1 == URL_RETRY_COUNT:
+                break
+            time.sleep(URL_RETRY_DELAY_SECONDS)
+    raise fail(f"url download failed: {url} error={last_error}")
+
+
+def capture_release_baseline(main_commit_sha: str, rollback_dir: Path) -> ReleaseBaseline:
+    tag_ref = gh_api(
+        f"repos/{REPOSITORY_FULL_NAME}/git/ref/tags/{RELEASE_TAG}",
+        allow_404=True,
+    )
+    tag_sha: str | None = None
+    if tag_ref is not None:
+        if not isinstance(tag_ref, dict):
+            raise fail("tag ref payload must be an object")
+        object_payload = tag_ref.get("object")
+        if not isinstance(object_payload, dict):
+            raise fail("tag ref object payload missing")
+        tag_sha = object_payload.get("sha")
+        if not isinstance(tag_sha, str) or not tag_sha:
+            raise fail("tag ref sha missing")
+
+    release = fetch_release_by_tag()
+    if release is None:
+        return ReleaseBaseline(
+            main_commit_sha=main_commit_sha,
+            tag_sha=tag_sha,
+            release_exists=False,
+            rollback_asset_path=None,
+        )
+    if tag_sha is None:
+        raise fail("pre-mutation release exists without tag baseline")
+
+    assets = collect_release_assets(release)
+    if len(assets) != 1:
+        raise fail(f"pre-mutation release asset set must contain exactly one asset: {len(assets)}")
+    asset = assets[0]
+    if asset.name != ASSET_FILENAME:
+        raise fail(f"unexpected pre-mutation asset filename: {asset.name}")
+
+    rollback_asset_path = rollback_dir / asset.name
+    download_url_to_path(asset.download_url, rollback_asset_path)
+    _, downloaded_size = hash_file(rollback_asset_path)
+    if downloaded_size != asset.size:
+        raise fail(f"pre-mutation asset size mismatch: {downloaded_size} != {asset.size}")
+
+    return ReleaseBaseline(
+        main_commit_sha=main_commit_sha,
+        tag_sha=tag_sha,
+        release_exists=True,
+        rollback_asset_path=rollback_asset_path,
+    )
+
+
+def rollback_release_surface(baseline: ReleaseBaseline) -> None:
+    last_error: Exception | None = None
+    for attempt in range(ROLLBACK_RETRY_COUNT):
+        try:
+            delete_release_if_exists()
+            delete_tag_if_exists()
+
+            if baseline.tag_sha is not None:
+                ensure_tag_ref(baseline.tag_sha)
+
+            if baseline.release_exists:
+                if baseline.tag_sha is None:
+                    raise fail("release baseline requires tag baseline")
+                if baseline.rollback_asset_path is None:
+                    raise fail("release rollback asset missing")
+                restored_release = ensure_release(baseline.tag_sha)
+                delete_stale_assets(restored_release)
+                upload_asset(baseline.rollback_asset_path)
+            restored_release = fetch_release_by_tag()
+            restored_tag_ref = gh_api(
+                f"repos/{REPOSITORY_FULL_NAME}/git/ref/tags/{RELEASE_TAG}",
+                allow_404=True,
+            )
+
+            current_ref = fetch_ref()
+            if current_ref is None:
+                raise fail("main ref missing during release rollback verification")
+            current_main_sha = current_ref.get("object", {}).get("sha")
+            if current_main_sha != baseline.main_commit_sha:
+                raise fail(
+                    f"branch mutation detected during release rollback: {current_main_sha} != {baseline.main_commit_sha}"
+                )
+
+            if baseline.tag_sha is None:
+                if restored_tag_ref is not None:
+                    raise fail("tag residue remains after release rollback")
+            else:
+                if not isinstance(restored_tag_ref, dict):
+                    raise fail("restored tag ref payload must be an object")
+                restored_tag_sha = restored_tag_ref.get("object", {}).get("sha")
+                if restored_tag_sha != baseline.tag_sha:
+                    raise fail(
+                        f"release rollback tag mismatch: {restored_tag_sha} != {baseline.tag_sha}"
+                    )
+
+            if baseline.release_exists:
+                if restored_release is None:
+                    raise fail("release missing after release rollback")
+                assert_release_state(restored_release, baseline.rollback_asset_path)
+            elif restored_release is not None:
+                raise fail("release residue remains after release rollback")
+            return
+        except Exception as exc:  # pragma: no cover - defensive rollback path
+            last_error = exc
+            if attempt + 1 == ROLLBACK_RETRY_COUNT:
+                break
+            time.sleep(ROLLBACK_RETRY_DELAY_SECONDS)
+    raise fail(f"release rollback failed: {last_error}")
+
+
 def fetch_release_by_tag() -> dict[str, Any] | None:
     payload = gh_api(
         f"repos/{REPOSITORY_FULL_NAME}/releases/tags/{RELEASE_TAG}",
@@ -906,7 +1062,7 @@ def collect_archive_file_hashes(package_asset: Path) -> dict[str, str]:
     return hashes
 
 
-def assert_local_carrier_contract(package_asset: Path) -> None:
+def assert_local_carrier_contract(package_asset: Path) -> dict[str, Any]:
     release_manifest = load_release_manifest(package_asset)
     expected_pairs = {
         "distribution_unit": ASSET_FILENAME,
@@ -923,9 +1079,7 @@ def assert_local_carrier_contract(package_asset: Path) -> None:
     package_root = package_asset.parent / "cyrune-free-v0.1"
     checksum_manifest_path = package_root / "SHA256SUMS.txt"
     checksum_entries = parse_sha256sums(checksum_manifest_path.read_text(encoding="utf-8"))
-    archive_hash_sidecar = (
-        package_asset.parent / "proof" / "archive-sha256.txt"
-    )
+    archive_hash_sidecar = package_asset.parent / "guard" / "archive-sha256.txt"
     archive_self_hash = parse_single_hash_line(
         archive_hash_sidecar.read_text(encoding="utf-8"),
         expected_name=package_asset.name,
@@ -949,7 +1103,7 @@ def assert_local_carrier_contract(package_asset: Path) -> None:
                 f"extract-root hash mismatch for {relative_path}: {actual_hash} != {expected_hash}"
             )
 
-    actual_archive_hash = compute_sha256(package_asset)
+    actual_archive_hash, asset_size = hash_file(package_asset)
     if actual_archive_hash != archive_self_hash:
         raise fail(
             f"archive self-hash mismatch: {actual_archive_hash} != {archive_self_hash}"
@@ -985,6 +1139,40 @@ def assert_local_carrier_contract(package_asset: Path) -> None:
     missing_members = sorted(required_members - member_names)
     if missing_members:
         raise fail(f"carrier-only payload missing from asset: {missing_members}")
+
+    return {
+        "package_asset": str(package_asset),
+        "distribution_unit": release_manifest["distribution_unit"],
+        "archive_sha256": actual_archive_hash,
+        "asset_size": asset_size,
+        "extract_root_path_count": len(extract_root_hashes),
+        "archive_member_count": len(archive_hashes),
+        "required_members": sorted(required_members),
+        "archive_hash_sidecar": str(archive_hash_sidecar),
+    }
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Publish or validate the CYRUNE GitHub release package surface."
+    )
+    mode_group = parser.add_mutually_exclusive_group(required=True)
+    mode_group.add_argument(
+        "--check-local-carrier",
+        action="store_true",
+        help="Validate the local carrier contract without any remote mutation.",
+    )
+    mode_group.add_argument(
+        "--publish-branch",
+        action="store_true",
+        help="Reserved for OP-5 remote tracked branch publication.",
+    )
+    mode_group.add_argument(
+        "--publish-release",
+        action="store_true",
+        help="Reserved for OP-6 remote release carrier publication.",
+    )
+    return parser.parse_args()
 
 
 def verify_page_url(url: str) -> None:
@@ -1073,13 +1261,73 @@ def assert_release_state(release: dict[str, Any], package_asset: Path) -> dict[s
     }
 
 
-def main() -> None:
-    if len(sys.argv) != 1:
-        raise fail("positional argument is forbidden")
-
-    roots = resolve_roots()
+def publish_release_surface() -> None:
+    roots = resolve_roots(
+        require_publication_roots=False,
+        require_package_asset=True,
+    )
     ensure_host_prerequisite()
-    assert_local_carrier_contract(roots.package_asset)
+
+    current_ref = fetch_ref()
+    if current_ref is None:
+        raise fail("main ref missing before release publication")
+    main_commit_sha = current_ref.get("object", {}).get("sha")
+    if not isinstance(main_commit_sha, str) or not main_commit_sha:
+        raise fail("main ref sha missing before release publication")
+
+    with tempfile.TemporaryDirectory(prefix="cyrune-release-rollback-") as rollback_dir_raw:
+        release_baseline = capture_release_baseline(main_commit_sha, Path(rollback_dir_raw))
+        mutation_started = False
+        try:
+            mutation_started = True
+            ensure_tag_ref(main_commit_sha)
+            release = ensure_release(main_commit_sha)
+            delete_stale_assets(release)
+            upload_asset(roots.package_asset)
+
+            release = fetch_release_by_tag()
+            if release is None:
+                raise fail(f"missing release after upload: {RELEASE_TAG}")
+            release_summary = assert_release_state(release, roots.package_asset)
+
+            current_ref = fetch_ref()
+            if current_ref is None:
+                raise fail("main ref missing after release publication")
+            current_main_sha = current_ref.get("object", {}).get("sha")
+            if current_main_sha != main_commit_sha:
+                raise fail(
+                    f"branch mutation detected during release publication: {current_main_sha} != {main_commit_sha}"
+                )
+
+            verify_page_url(REPOSITORY_ROOT_PAGE)
+            verify_page_url(RELEASE_LANDING_PAGE)
+            asset_hash, asset_size = verify_asset_url(roots.package_asset)
+        except Exception:
+            if mutation_started:
+                rollback_release_surface(release_baseline)
+            raise
+
+    print(
+        json.dumps(
+            {
+                "repository_full_name": REPOSITORY_FULL_NAME,
+                "branch_ref": BRANCH_REF,
+                "branch_commit_sha": main_commit_sha,
+                "release_tag": RELEASE_TAG,
+                "release_landing_page": RELEASE_LANDING_PAGE,
+                "exact_asset_url": EXACT_ASSET_URL,
+                "asset_sha256": asset_hash,
+                "asset_size": asset_size,
+                "release_summary": release_summary,
+            },
+            ensure_ascii=True,
+        )
+    )
+
+
+def publish_branch_surface() -> None:
+    roots = resolve_roots(require_package_asset=False)
+    ensure_host_prerequisite()
     snapshot_root, local_blobs, local_directories, local_top_level = load_local_tracked_blobs(
         roots
     )
@@ -1120,7 +1368,6 @@ def main() -> None:
 
     new_commit_sha: str | None = None
     mutated_main_ref = False
-    mutated_release_surface = False
     try:
         if preexisting_mode == "tracked_surface_normalizable" and is_exact_tracked_surface(
             local_blobs,
@@ -1154,23 +1401,17 @@ def main() -> None:
                 raise fail("updated commit tree sha missing")
             updated_tree = fetch_tree_recursive(updated_tree_sha)
         assert_exact_tracked_surface(local_blobs, local_directories, local_top_level, updated_tree)
-
-        mutated_release_surface = True
-        ensure_tag_ref(new_commit_sha)
-        release = ensure_release(new_commit_sha)
-        delete_stale_assets(release)
-        upload_asset(roots.package_asset)
-        release = fetch_release_by_tag()
-        if release is None:
-            raise fail(f"missing release after upload: {RELEASE_TAG}")
-        release_summary = assert_release_state(release, roots.package_asset)
-
-        verify_page_url(REPOSITORY_ROOT_PAGE)
-        verify_page_url(RELEASE_LANDING_PAGE)
-        asset_hash, asset_size = verify_asset_url(roots.package_asset)
     except Exception:
-        if mutated_main_ref or mutated_release_surface:
-            rollback_to_bootstrap_state(commit_sha)
+        if mutated_main_ref:
+            restore_main_ref(commit_sha)
+            rolled_back_ref = fetch_ref()
+            if rolled_back_ref is None:
+                raise fail("main ref missing during branch rollback verification")
+            rolled_back_sha = rolled_back_ref.get("object", {}).get("sha")
+            if rolled_back_sha != commit_sha:
+                raise fail(
+                    f"branch rollback mismatch: {rolled_back_sha} != {commit_sha}"
+                )
         raise
 
     print(
@@ -1178,19 +1419,39 @@ def main() -> None:
             {
                 "repository_full_name": REPOSITORY_FULL_NAME,
                 "branch_ref": BRANCH_REF,
-                "release_tag": RELEASE_TAG,
-                "release_landing_page": RELEASE_LANDING_PAGE,
-                "exact_asset_url": EXACT_ASSET_URL,
+                "commit_sha": new_commit_sha,
                 "clone_url": CLONE_URL,
-                "asset_sha256": asset_hash,
-                "asset_size": asset_size,
+                "preexisting_mode": preexisting_mode,
                 "tracked_top_level_set": sorted(local_top_level),
                 "tracked_path_set": sorted(blob.path for blob in local_blobs),
-                "release_summary": release_summary,
             },
             ensure_ascii=True,
         )
     )
+
+
+def main() -> None:
+    args = parse_args()
+    if args.check_local_carrier:
+        roots = resolve_roots(
+            require_publication_roots=False,
+            require_package_asset=True,
+        )
+        contract_summary = assert_local_carrier_contract(roots.package_asset)
+        print(
+            json.dumps(
+                {"mode": "check-local-carrier", **contract_summary},
+                ensure_ascii=True,
+            )
+        )
+        return
+    if args.publish_branch:
+        publish_branch_surface()
+        return
+    if args.publish_release:
+        publish_release_surface()
+        return
+    raise fail("exactly one subcommand is required")
 
 
 if __name__ == "__main__":

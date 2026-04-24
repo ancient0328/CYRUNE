@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import gzip
 import json
 import os
 import platform
@@ -19,6 +20,12 @@ VERSION = "0.1.0"
 ARCHIVE_BASENAME = "cyrune-free-v0.1"
 SBOM_NAMESPACE_HOST = "cyrune.local"
 RELEASE_PREPARATION_METADATA_VERSION = "d7-rc1-rule-fixed.v1"
+RELEASE_GENERATED_AT = "2026-04-23T15:36:57Z"
+RELEASE_ARCHIVE_MTIME = int(
+    datetime.strptime(RELEASE_GENERATED_AT, "%Y-%m-%dT%H:%M:%SZ")
+    .replace(tzinfo=timezone.utc)
+    .timestamp()
+)
 WEZTERM_SOURCE_PROJECT = "wezterm/wezterm"
 WEZTERM_SOURCE_KIND = "github-release-tag"
 WEZTERM_SOURCE_EVIDENCE_ORIGIN = "official-github-release"
@@ -388,6 +395,43 @@ def make_executable(path: Path) -> None:
     path.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
+def normalize_profile_launcher_paths(
+    *,
+    profiles_src: Path,
+    profiles_dst: Path,
+    staging_home: Path,
+    bundle_root: Path,
+) -> None:
+    for profile_src in sorted(profiles_src.glob("*.json")):
+        profile = json.loads(profile_src.read_text(encoding="utf-8"))
+        raw_launcher_path = profile.get("launcher_path")
+        if not isinstance(raw_launcher_path, str) or not raw_launcher_path:
+            raise ValueError(f"launcher_path is missing in {profile_src}")
+
+        launcher_source = Path(raw_launcher_path)
+        if launcher_source.is_absolute():
+            try:
+                launcher_relative = launcher_source.relative_to(staging_home)
+            except ValueError as exc:
+                raise ValueError(
+                    f"launcher_path must resolve under staging_home for bundle payload: {raw_launcher_path}"
+                ) from exc
+        else:
+            launcher_relative = launcher_source
+            launcher_source = staging_home / launcher_relative
+
+        if not launcher_source.exists():
+            raise FileNotFoundError(f"launcher source is missing: {launcher_source}")
+
+        bundled_launcher = bundle_root / launcher_relative
+        if not bundled_launcher.exists():
+            raise FileNotFoundError(f"bundled launcher is missing: {bundled_launcher}")
+
+        profile["launcher_path"] = launcher_relative.as_posix()
+        profile_dst = profiles_dst / profile_src.name
+        profile_dst.write_text(json.dumps(profile, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def maybe_codesign(binary_path: Path, guard_dir: Path) -> str:
     if platform.system() != "Darwin":
         return "hash-only"
@@ -420,35 +464,12 @@ def copy_adapter_resolution_assets(*, adapter_root: Path, staging_home: Path, bu
     profiles_dst.mkdir(parents=True, exist_ok=True)
     shutil.copy2(registry_src / "registry.json", registry_dst / "registry.json")
     copy_tree(runtime_ipc_src, bundle_root / "runtime" / "ipc")
-
-    for profile_src in sorted(profiles_src.glob("*.json")):
-        profile = json.loads(profile_src.read_text(encoding="utf-8"))
-        raw_launcher_path = profile.get("launcher_path")
-        if not isinstance(raw_launcher_path, str) or not raw_launcher_path:
-            raise ValueError(f"launcher_path is missing in {profile_src}")
-
-        launcher_source = Path(raw_launcher_path)
-        if launcher_source.is_absolute():
-            try:
-                launcher_relative = launcher_source.relative_to(staging_home)
-            except ValueError as exc:
-                raise ValueError(
-                    f"launcher_path must resolve under staging_home for bundle payload: {raw_launcher_path}"
-                ) from exc
-        else:
-            launcher_relative = launcher_source
-            launcher_source = staging_home / launcher_relative
-
-        if not launcher_source.exists():
-            raise FileNotFoundError(f"launcher source is missing: {launcher_source}")
-
-        bundled_launcher = bundle_root / launcher_relative
-        if not bundled_launcher.exists():
-            raise FileNotFoundError(f"bundled launcher is missing: {bundled_launcher}")
-
-        profile["launcher_path"] = launcher_relative.as_posix()
-        profile_dst = profiles_dst / profile_src.name
-        profile_dst.write_text(json.dumps(profile, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    normalize_profile_launcher_paths(
+        profiles_src=profiles_src,
+        profiles_dst=profiles_dst,
+        staging_home=staging_home,
+        bundle_root=bundle_root,
+    )
 
 
 def write_bundle_root(
@@ -565,9 +586,37 @@ def write_hash_list(package_root: Path) -> None:
     (package_root / "SHA256SUMS.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def normalize_archive_entry(tarinfo: tarfile.TarInfo) -> tarfile.TarInfo:
+    tarinfo.mtime = RELEASE_ARCHIVE_MTIME
+    tarinfo.uid = 0
+    tarinfo.gid = 0
+    tarinfo.uname = ""
+    tarinfo.gname = ""
+    return tarinfo
+
+
 def create_archive(package_root: Path, archive_path: Path) -> None:
-    with tarfile.open(archive_path, "w:gz") as archive:
-        archive.add(package_root, arcname=package_root.name)
+    with archive_path.open("wb") as raw_out:
+        with gzip.GzipFile(
+            filename="",
+            mode="wb",
+            fileobj=raw_out,
+            mtime=RELEASE_ARCHIVE_MTIME,
+        ) as gzip_out:
+            with tarfile.open(fileobj=gzip_out, mode="w") as archive:
+                archive.add(
+                    package_root,
+                    arcname=package_root.name,
+                    recursive=False,
+                    filter=normalize_archive_entry,
+                )
+                for path in sorted(package_root.rglob("*")):
+                    archive.add(
+                        path,
+                        arcname=f"{package_root.name}/{path.relative_to(package_root).as_posix()}",
+                        recursive=False,
+                        filter=normalize_archive_entry,
+                    )
 
 
 def main() -> int:
@@ -577,13 +626,18 @@ def main() -> int:
     guard_dir = output_root / "guard"
     package_root = output_root / ARCHIVE_BASENAME
     archive_path = output_root / f"{ARCHIVE_BASENAME}.tar.gz"
-    generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    build_target_dir = output_root / "_cargo-target"
+    generated_at = RELEASE_GENERATED_AT
 
     if output_root.exists():
         shutil.rmtree(output_root)
     guard_dir.mkdir(parents=True, exist_ok=True)
 
     manifest_path = workspace / "Cargo.toml"
+    build_env = os.environ.copy()
+    build_env["CARGO_TARGET_DIR"] = str(build_target_dir)
+    build_env["STOOLAP_BUILD_TIME"] = RELEASE_GENERATED_AT
+    build_env["STOOLAP_GIT_COMMIT"] = "unknown"
     run(
         [
             "cargo",
@@ -597,9 +651,10 @@ def main() -> int:
             "cyrune-runtime-cli",
         ],
         cwd=workspace,
+        env=build_env,
     )
 
-    release_dir = workspace / "target" / "release"
+    release_dir = build_target_dir / "release"
     runtime_bin = release_dir / "cyrune-runtime-cli"
     daemon_bin = release_dir / "cyrune-daemon"
     if not runtime_bin.exists() or not daemon_bin.exists():
@@ -626,8 +681,15 @@ def main() -> int:
     make_executable(package_root / "bin" / "cyr")
     make_executable(package_root / "bin" / "cyrune-daemon")
 
-    copy_tree(staging_home, package_root / "share" / "cyrune" / "home-template")
-    overlay_tree(bundle_resources_root, package_root / "share" / "cyrune" / "home-template")
+    home_template_root = package_root / "share" / "cyrune" / "home-template"
+    copy_tree(staging_home, home_template_root)
+    normalize_profile_launcher_paths(
+        profiles_src=staging_home / "registry" / "execution-adapters" / "approved" / "profiles",
+        profiles_dst=home_template_root / "registry" / "execution-adapters" / "approved" / "profiles",
+        staging_home=staging_home,
+        bundle_root=home_template_root,
+    )
+    overlay_tree(bundle_resources_root, home_template_root)
     write_bundle_root(
         package_root,
         adapter_root=adapter_root,
