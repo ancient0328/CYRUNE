@@ -1,16 +1,16 @@
 # USER_GUIDE
 
-この文書は、GitHub 公開リポジトリとしての CYRUNE Free v0.1 public alpha の使い方を説明する日本語 companion です。
+この文書は、GitHub 公開リポジトリとしての CYRUNE Free v0.1 public beta の使い方を説明する日本語 companion です。
 
 英語の公開入口は、リポジトリ root の `README.md`、`docs/GETTING_STARTED.md`、`docs/FIRST_SUCCESS_EXPECTED.md`、`docs/TROUBLESHOOTING.md` です。この日本語 companion は、それらの claim boundary を上書きしません。
 
 ## 1. このパッケージでできること
 
-CYRUNE Free v0.1 は、single-user 向けの public alpha package です。
+CYRUNE Free v0.1 は、single-user 向けの public beta package です。
 
-この公開面では、ローカル host 上で public-run state を準備し、`cyr doctor` を実行し、packaged Free v0.1 Control Plane path を通して no-LLM の first-success request を 1 回実行できます。
+この公開面では、ローカル host 上で pinned beta carrier から public-run state を準備し、`cyr doctor` を実行し、packaged Free v0.1 Control Plane path を通して no-LLM の first-success request を 1 回実行できます。
 
-この public alpha は、native distribution、OS-level sandbox enforcement、enforcement-complete classification / MAC、Pro / Enterprise / CITADEL scope、signing、notarization、installer distribution を主張しません。
+この public beta は、production maturity、native distribution、OS-level sandbox enforcement、enforcement-complete classification / MAC、Pro / Enterprise / CITADEL scope、signing、notarization、installer distribution を主張しません。
 
 ## 2. リポジトリ構成
 
@@ -26,6 +26,7 @@ CYRUNE Free v0.1 は、single-user 向けの public alpha package です。
 
 - `docs/GETTING_STARTED.md`
 - `docs/FIRST_SUCCESS_EXPECTED.md`
+- `docs/BETA_CRITERIA.md`
 - `docs/TROUBLESHOOTING.md`
 - `scripts/prepare-public-run.sh`
 - `scripts/doctor.sh`
@@ -106,7 +107,7 @@ free/v0.1/0/target/public-run/
 
 ## 8. 非主張範囲
 
-first-success の成功が示すのは、Free v0.1 no-LLM flow の public alpha path が document 通りに通ることだけです。
+first-success の成功が示すのは、Free v0.1 no-LLM flow の public beta first-success path が document 通りに通ることです。beta release contract 全体には、`docs/BETA_CRITERIA.md` に定義された source、carrier asset、CI、public docs、Closed Gate evidence も必要です。
 
 それは次を証明しません。
 

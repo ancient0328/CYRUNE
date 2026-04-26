@@ -32,11 +32,17 @@ REPOSITORY_NAME = "CYRUNE"
 REPOSITORY_FULL_NAME = f"{REPOSITORY_OWNER}/{REPOSITORY_NAME}"
 BRANCH_NAME = "main"
 BRANCH_REF = f"refs/heads/{BRANCH_NAME}"
-RELEASE_TAG = "v0.1.0"
-COMPATIBILITY_RELEASE_TAGS = {"v0.1"}
-RELEASE_TITLE = "CYRUNE Free v0.1 public alpha"
-RELEASE_BODY = ""
-ASSET_FILENAME = "cyrune-free-v0.1.tar.gz"
+RELEASE_TAG = "v0.1.1-beta.1"
+COMPATIBILITY_RELEASE_TAGS = {"v0.1", "v0.1.0"}
+RELEASE_TITLE = "CYRUNE Free v0.1.1-beta.1 public beta"
+RELEASE_BODY = (
+    "CYRUNE Free v0.1 public beta release-contract surface. "
+    "This beta does not claim production maturity, native installer distribution, "
+    "OS-level sandbox enforcement, enforcement-complete classification/MAC, "
+    "or Pro / Enterprise / CITADEL scope."
+)
+ASSET_FILENAME = "cyrune-free-v0.1.1-beta.1.tar.gz"
+ARCHIVE_BASENAME = ASSET_FILENAME.removesuffix(".tar.gz")
 RELEASE_LANDING_PAGE = (
     f"https://github.com/{REPOSITORY_FULL_NAME}/releases/tag/{RELEASE_TAG}"
 )
@@ -650,11 +656,7 @@ def ensure_tag_ref(commit_sha: str) -> None:
     current_sha = object_payload.get("sha")
     if current_sha == commit_sha:
         return
-    gh_api(
-        f"repos/{REPOSITORY_FULL_NAME}/git/refs/tags/{RELEASE_TAG}",
-        method="PATCH",
-        payload={"sha": commit_sha, "force": True},
-    )
+    raise fail(f"existing release tag must not move: {RELEASE_TAG} {current_sha} != {commit_sha}")
 
 
 def delete_release_if_exists() -> None:
@@ -880,7 +882,7 @@ def ensure_release(commit_sha: str) -> dict[str, Any]:
         "name": RELEASE_TITLE,
         "body": RELEASE_BODY,
         "draft": False,
-        "prerelease": False,
+        "prerelease": True,
     }
     if release is None:
         created = gh_api(
@@ -977,7 +979,7 @@ def hash_file(path: Path) -> tuple[str, int]:
 def load_release_manifest(package_asset: Path) -> dict[str, Any]:
     with tarfile.open(package_asset, "r:gz") as archive:
         try:
-            member = archive.getmember("cyrune-free-v0.1/RELEASE_MANIFEST.json")
+            member = archive.getmember(f"{ARCHIVE_BASENAME}/RELEASE_MANIFEST.json")
         except KeyError as exc:
             raise fail("missing RELEASE_MANIFEST.json in carrier asset") from exc
         extracted = archive.extractfile(member)
@@ -1075,7 +1077,6 @@ def assert_local_carrier_contract(package_asset: Path) -> dict[str, Any]:
     expected_pairs = {
         "distribution_unit": ASSET_FILENAME,
         "integrity_mode": "sha256",
-        "signature_mode": "macos-adhoc",
         "update_policy": "fixed-distribution/no-self-update",
     }
     for key, expected_value in expected_pairs.items():
@@ -1084,7 +1085,11 @@ def assert_local_carrier_contract(package_asset: Path) -> dict[str, Any]:
                 f"carrier manifest mismatch for {key}: {release_manifest.get(key)!r} != {expected_value!r}"
             )
 
-    package_root = package_asset.parent / "cyrune-free-v0.1"
+    signature_mode = release_manifest.get("signature_mode")
+    if signature_mode not in {"macos-adhoc", "hash-only"}:
+        raise fail(f"unexpected signature mode for beta carrier: {signature_mode!r}")
+
+    package_root = package_asset.parent / ARCHIVE_BASENAME
     checksum_manifest_path = package_root / "SHA256SUMS.txt"
     checksum_entries = parse_sha256sums(checksum_manifest_path.read_text(encoding="utf-8"))
     archive_hash_sidecar = package_asset.parent / "guard" / "archive-sha256.txt"
@@ -1118,15 +1123,15 @@ def assert_local_carrier_contract(package_asset: Path) -> dict[str, Any]:
         )
 
     required_members = {
-        "cyrune-free-v0.1/share/cyrune/bundle-root/embedding/artifacts/multilingual-e5-small/model.onnx",
-        "cyrune-free-v0.1/share/cyrune/home-template/embedding/artifacts/multilingual-e5-small/model.onnx",
+        f"{ARCHIVE_BASENAME}/share/cyrune/bundle-root/embedding/artifacts/multilingual-e5-small/model.onnx",
+        f"{ARCHIVE_BASENAME}/share/cyrune/home-template/embedding/artifacts/multilingual-e5-small/model.onnx",
     }
     archive_hashes = collect_archive_file_hashes(package_asset)
     expected_archive_hashes = {
-        f"cyrune-free-v0.1/{relative_path}": digest
+        f"{ARCHIVE_BASENAME}/{relative_path}": digest
         for relative_path, digest in checksum_entries.items()
     }
-    expected_archive_hashes["cyrune-free-v0.1/SHA256SUMS.txt"] = extract_root_hashes[
+    expected_archive_hashes[f"{ARCHIVE_BASENAME}/SHA256SUMS.txt"] = extract_root_hashes[
         "SHA256SUMS.txt"
     ]
     if set(archive_hashes) != set(expected_archive_hashes):
@@ -1247,8 +1252,8 @@ def assert_release_state(release: dict[str, Any], package_asset: Path) -> dict[s
         raise fail(f"unexpected release landing page: {release.get('html_url')}")
     if release.get("draft") is not False:
         raise fail("draft release is forbidden")
-    if release.get("prerelease") is not False:
-        raise fail("prerelease is forbidden")
+    if release.get("prerelease") is not True:
+        raise fail("beta release must be marked as prerelease")
 
     assets = collect_release_assets(release)
     if len(assets) != 1:

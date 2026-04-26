@@ -8,11 +8,11 @@ Japanese companion guidance is available at `docs/ja/USER_GUIDE.md`.
 
 ## 1. What This Package Does
 
-CYRUNE Free v0.1 is a single-user public alpha package.
+CYRUNE Free v0.1 is a single-user public beta package.
 
-It lets a local host prepare public-run state, run `cyr doctor`, and execute one no-LLM first-success request through the packaged Free v0.1 Control Plane path.
+It lets a local host prepare public-run state from the pinned beta carrier, run `cyr doctor`, and execute one no-LLM first-success request through the packaged Free v0.1 Control Plane path.
 
-This public alpha does not claim native distribution, OS-level sandbox enforcement, enforcement-complete classification / MAC, Pro / Enterprise / CITADEL scope, signing, notarization, or installer distribution.
+This public beta does not claim production maturity, native distribution, OS-level sandbox enforcement, enforcement-complete classification / MAC, Pro / Enterprise / CITADEL scope, signing, notarization, or installer distribution.
 
 ## 2. Repository Contents
 
@@ -27,6 +27,7 @@ The normal user path uses:
 
 - `docs/GETTING_STARTED.md`
 - `docs/FIRST_SUCCESS_EXPECTED.md`
+- `docs/BETA_CRITERIA.md`
 - `docs/TROUBLESHOOTING.md`
 - `scripts/prepare-public-run.sh`
 - `scripts/doctor.sh`
@@ -107,7 +108,7 @@ If `first-success.sh` fails, rerun `prepare-public-run.sh`, confirm `doctor.sh` 
 
 ## 8. Non-Claims
 
-Successful first-success proves only the documented public alpha path for the no-LLM Free v0.1 flow.
+Successful first-success proves only the documented public beta first-success path for the no-LLM Free v0.1 flow. The full beta release contract additionally requires the source, carrier asset, CI, public docs, and Closed Gate evidence defined in `docs/BETA_CRITERIA.md`.
 
 It does not prove:
 

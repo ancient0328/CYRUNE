@@ -554,7 +554,7 @@ for path in [
         raise SystemExit(f"missing artifact: {path.name}")
 
 manifest = json.loads(accepted_manifest.read_text(encoding="utf-8"))
-if manifest.get("distribution_unit") != "cyrune-free-v0.1.tar.gz":
+if manifest.get("distribution_unit") != "cyrune-free-v0.1.1-beta.1.tar.gz":
     raise SystemExit("accepted manifest distribution unit mismatch")
 
 preparation = json.loads(accepted_preparation.read_text(encoding="utf-8"))
@@ -578,7 +578,7 @@ if snapshot.get("installer_artifact") != {
 if snapshot.get("archive_artifact") != {
     "artifact_class": "distribution_archive",
     "platform": "macOS",
-    "emitted_name": "cyrune-free-v0.1.tar.gz",
+    "emitted_name": "cyrune-free-v0.1.1-beta.1.tar.gz",
 }:
     raise SystemExit("accepted archive artifact mismatch")
 if snapshot.get("upstream_source_pin") != {

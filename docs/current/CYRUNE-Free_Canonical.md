@@ -4,7 +4,7 @@
 **Scope**: Single-user Control OS Core
 **Price**: $0
 
-**Public Free v0.1 scope note**: この public alpha は Free v0.1 の first-success execution surface を公開する。classification / MAC は CYRUNE の canonical design concept として扱うが、この公開面は enforcement-complete classification lattice / clearance enforcement を主張しない。
+**Public Free v0.1 scope note**: この public beta は Free v0.1 の first-success execution surface を release contract として公開する。classification / MAC は CYRUNE の canonical design concept として扱うが、この公開面は enforcement-complete classification lattice / clearance enforcement を主張しない。
 
 ---
 
@@ -46,7 +46,7 @@ Freeの中核はControl Planeである。
 1. User input
 2. Context clear
 3. Working再構築
-4. Classification boundary（target/design scope; public alpha does not claim enforcement-complete classification / MAC）
+4. Classification boundary（target/design scope; public beta does not claim enforcement-complete classification / MAC）
 5. Policy pre-check
 6. LLM（またはNo-LLM）実行
 7. Citation validation
@@ -101,7 +101,7 @@ Freeは実装詳細を固定しないが、
 以下の場合は出力を拒否する：
 
 * 出典なき主張
-* 未分類データ（target/design scope; public alpha does not claim executable classification / MAC rejection）
+* 未分類データ（target/design scope; public beta does not claim executable classification / MAC rejection）
 * Policy違反
 * 未定義Capability使用
 * Working未整合

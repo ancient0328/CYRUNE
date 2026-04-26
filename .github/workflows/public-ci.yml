@@ -15,9 +15,15 @@ jobs:
 
       - name: Check public shell scripts parse
         run: |
-          bash -n scripts/prepare-public-run.sh
-          bash -n scripts/doctor.sh
-          bash -n scripts/first-success.sh
+          for script in scripts/*.sh; do
+            bash -n "$script"
+          done
+
+      - name: Check Python helper syntax
+        run: python3 -m py_compile free/v0.1/0/scripts/*.py
+
+      - name: Check beta release contract predicates
+        run: ./scripts/check-beta-release-contract.sh
 
       - name: Check Rust formatting
         run: cargo fmt --manifest-path free/v0.1/0/Cargo.toml --all -- --check
@@ -30,6 +36,9 @@ jobs:
 
       - name: Prepare public first-success state
         run: ./scripts/prepare-public-run.sh
+
+      - name: Check prepared beta carrier contract
+        run: ./scripts/check-beta-release-contract.sh
 
       - name: Check public first-success path
         run: |

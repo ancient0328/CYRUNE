@@ -1,6 +1,6 @@
 # CYRUNE Free v0.1
 
-CYRUNE Free v0.1 is a **public alpha** repository for the single-user CYRUNE Free runtime. It is shaped for the first-success path: prepare the public-run state, run `cyr doctor`, then run one no-LLM `cyr run` through the packaged Control Plane path.
+CYRUNE Free v0.1 is a **public beta** repository for the single-user CYRUNE Free runtime. It is shaped as a release contract for the first-success path: prepare the public-run state, run `cyr doctor`, then run one no-LLM `cyr run` through the packaged Control Plane path.
 
 This repository is a public-facing Free v0.1 publication unit. It is not a native installer, not a signed desktop distribution, and not the Pro / Enterprise / CITADEL product surface.
 
@@ -9,9 +9,10 @@ This repository is a public-facing Free v0.1 publication unit. It is not a nativ
 - `main` is the latest public repository surface.
 - SemVer tags, such as `v0.1.0`, are immutable snapshots of this public repository content.
 - `v0.1.0` is the published immutable CYRUNE Free v0.1 public alpha snapshot tag.
+- `v0.1.1-beta.1` is the first CYRUNE Free v0.1 public beta release-contract tag.
 - `v0.1` is treated as a version marker / compatibility tag, not as a branch name.
 - This repository does not use a `v0.1` branch. A maintenance branch, if ever needed, should use a non-conflicting name such as `release/v0.1`.
-- Version tags do not expand the public alpha claim boundary described below.
+- Version tags do not expand the public beta claim boundary described below.
 
 ## Language
 
@@ -30,22 +31,24 @@ Japanese companion documents do not override the English public claim boundary i
 1. [Getting Started](docs/GETTING_STARTED.md)
 2. [First Success Expected Result](docs/FIRST_SUCCESS_EXPECTED.md)
 3. [Troubleshooting](docs/TROUBLESHOOTING.md)
-4. [Public Index](docs/CYRUNE_Free_Public_Index.md)
-5. [Free Source](free/v0.1/0/)
+4. [Public Beta Criteria](docs/BETA_CRITERIA.md)
+5. [Public Index](docs/CYRUNE_Free_Public_Index.md)
+6. [Free Source](free/v0.1/0/)
 
-## What This Alpha Provides
+## What This Beta Provides
 
 - The public repository contains the Free v0.1 source surface and the public scripts needed for the first-success flow.
-- `prepare-public-run.sh` prepares local state under `free/v0.1/0/target/public-run/`.
+- `prepare-public-run.sh` downloads and validates the pinned beta carrier, then prepares local state under `free/v0.1/0/target/public-run/`.
 - `doctor.sh` checks that the prepared state is diagnosable.
 - `first-success.sh` runs a no-LLM request and returns the accepted JSON response when the path succeeds.
+- The beta release contract binds the tracked source, beta carrier asset, CI, docs, first-success evidence, and Closed Gate Report.
 
 ## Current Claim Boundary
 
-- Sandbox scope: this alpha documents and uses sandbox specification normalization / validation. It does not claim OS-level process isolation.
-- Classification / MAC scope: CYRUNE product docs describe the intended classification and MAC model. This Free v0.1 public alpha does not claim enforcement-complete classification lattice or clearance governance.
-- Evidence scope: first-success creates local runtime evidence for the no-LLM path. It does not prove native distribution, signing, notarization, Pro features, Enterprise governance, or CITADEL hardening.
-- Signed update scope: product-wide docs may describe signed update or no-self-update discipline as a design direction. This Free v0.1 public alpha does not ship a signed updater or signed update channel.
+- Sandbox scope: this beta documents and uses sandbox specification normalization / validation. It does not claim OS-level process isolation.
+- Classification / MAC scope: CYRUNE product docs describe the intended classification and MAC model. This Free v0.1 public beta does not claim enforcement-complete classification / MAC lattice or clearance governance.
+- Evidence scope: first-success creates local runtime evidence for the no-LLM path. It does not prove production maturity, native distribution, signing, notarization, Pro features, Enterprise governance, or CITADEL hardening.
+- Signed update scope: product-wide docs may describe signed update or no-self-update discipline as a design direction. This Free v0.1 public beta does not ship a signed updater or signed update channel.
 
 ## Repository Contents
 

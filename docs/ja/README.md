@@ -7,6 +7,7 @@
 ## 文書
 
 - `CYRUNE_Free_Public_Index.md`
+- `BETA_CRITERIA.md`
 - `USER_GUIDE.md`
 - `ENGINEERING_SPEC.md`
 

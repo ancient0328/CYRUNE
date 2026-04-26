@@ -16,11 +16,11 @@ from pathlib import Path
 from typing import Any
 
 PRODUCT = "cyrune-free"
-VERSION = "0.1.0"
-ARCHIVE_BASENAME = "cyrune-free-v0.1"
+VERSION = "0.1.1-beta.1"
+ARCHIVE_BASENAME = "cyrune-free-v0.1.1-beta.1"
 SBOM_NAMESPACE_HOST = "cyrune.local"
-RELEASE_PREPARATION_METADATA_VERSION = "d7-rc1-rule-fixed.v1"
-RELEASE_GENERATED_AT = "2026-04-23T15:36:57Z"
+RELEASE_PREPARATION_METADATA_VERSION = "public-beta-release-contract.v1"
+RELEASE_GENERATED_AT = "2026-04-26T02:51:21Z"
 RELEASE_ARCHIVE_MTIME = int(
     datetime.strptime(RELEASE_GENERATED_AT, "%Y-%m-%dT%H:%M:%SZ")
     .replace(tzinfo=timezone.utc)
@@ -523,7 +523,7 @@ def write_release_manifest(
         "terminal_config_path": "share/cyrune/home-template/terminal/config/wezterm.lua",
         "productization_identity": dict(PRODUCTIZATION_IDENTITY),
         "license_bundle_path": "share/licenses",
-        "sbom_path": "share/sbom/cyrune-free-v0.1.spdx.json",
+        "sbom_path": "share/sbom/cyrune-free-v0.1.1-beta.1.spdx.json",
         "integrity_mode": "sha256",
         "signature_mode": signature_mode,
         "update_policy": "fixed-distribution/no-self-update",
@@ -707,9 +707,12 @@ def main() -> int:
     )
 
     metadata = cargo_metadata(manifest_path)
-    sbom_path = package_root / "share" / "sbom" / "cyrune-free-v0.1.spdx.json"
+    sbom_path = package_root / "share" / "sbom" / "cyrune-free-v0.1.1-beta.1.spdx.json"
     write_spdx(metadata, sbom_path, generated_at)
-    write_license_bundle(package_root / "share" / "licenses", "share/sbom/cyrune-free-v0.1.spdx.json")
+    write_license_bundle(
+        package_root / "share" / "licenses",
+        "share/sbom/cyrune-free-v0.1.1-beta.1.spdx.json",
+    )
 
     signature_modes = {
         "cyr": maybe_codesign(package_root / "bin" / "cyr", guard_dir),

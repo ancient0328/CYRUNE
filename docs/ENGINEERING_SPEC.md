@@ -22,7 +22,7 @@ It is meant to answer:
 3. what state is generated under `target/public-run/`,
 4. what changes can break public-run behavior,
 5. what predicates should be checked during maintenance,
-6. what runtime / product scope this public alpha does not claim.
+6. what runtime / product scope this public beta does not claim.
 
 This document does not redefine current public truth, task roadmaps, native distribution, OS-level sandbox enforcement, completed classification / MAC, upper-tier features, signing, notarization, or installer distribution.
 
@@ -43,10 +43,11 @@ The public repository has four surfaces:
 
 GitHub publication uses `main` as the latest public repository surface and immutable SemVer tags as snapshots.
 
-For CYRUNE Free v0.1 public alpha:
+For CYRUNE Free v0.1 public beta:
 
 - `main` points to the latest public surface.
 - `v0.1.0` is the published immutable snapshot tag for the Free v0.1 public alpha.
+- `v0.1.1-beta.1` is the first public beta release-contract tag.
 - Existing `v0.1` is a version marker / compatibility tag.
 - A `v0.1` branch is not used.
 - Future v0.1 maintenance, if needed, must use a non-conflicting branch name such as `release/v0.1`.
@@ -62,7 +63,7 @@ Top-level layout:
 - `free/`
 
 `docs/current/` contains current public truth references.
-`docs/deferred/` contains future-publication or upper-tier material that is not adopted into Free v0.1 alpha claims.
+`docs/deferred/` contains future-publication or upper-tier material that is not adopted into Free v0.1 beta claims.
 `docs/historical/` contains non-authoritative historical material.
 `docs/ja/` contains Japanese companion documents.
 
@@ -107,7 +108,7 @@ They derive:
 7. build `cyrune-runtime-cli` and `cyrune-daemon`,
 8. install `cyr` and `cyrune-daemon` under `target/public-run/bin/`.
 
-The concrete carrier URL / filename / size / SHA256 values are operational pins. They are not product identity authority.
+The concrete carrier URL / filename / size / SHA256 values are beta release-contract pins. They are not product identity authority.
 
 ## 7. doctor Contract
 
@@ -157,8 +158,9 @@ Changes to the following affect public-reader interpretation:
 
 ## 10. Non-Claims
 
-This public alpha does not claim:
+This public beta does not claim:
 
+- production maturity
 - native distributable release
 - installer packaging
 - concrete signing / notarization values
@@ -171,8 +173,11 @@ This public alpha does not claim:
 The public CI checks:
 
 - public shell scripts parse,
+- beta release-contract static predicates,
 - Rust formatting,
 - Rust workspace check,
 - Rust lint with warnings denied.
 
 Runtime first-success validation is documented in `docs/FIRST_SUCCESS_EXPECTED.md` and produces local evidence under `free/v0.1/0/target/public-run/home/`.
+
+The beta release-contract criteria are documented in `docs/BETA_CRITERIA.md`.

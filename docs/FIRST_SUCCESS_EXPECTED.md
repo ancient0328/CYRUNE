@@ -1,6 +1,6 @@
 # FIRST_SUCCESS_EXPECTED
 
-This document explains what `scripts/first-success.sh` is expected to show in the CYRUNE Free v0.1 public alpha.
+This document explains what `scripts/first-success.sh` is expected to show in the CYRUNE Free v0.1 public beta release contract.
 
 It is a public-facing interpretation guide. It does not replace `GETTING_STARTED.md`, `TROUBLESHOOTING.md`, or `CYRUNE_Free_Public_Index.md`.
 
@@ -69,13 +69,15 @@ free/v0.1/0/target/public-run/home/working/working.json
 
 ## 4. What This Result Means
 
-This first-success path means the local public alpha repository has performed these steps in the prepared public-run state:
+This first-success path means the local public beta repository has performed these steps in the prepared public-run state:
 
 1. prepare local public-run state
 2. run `cyr doctor` against that state
 3. execute one no-LLM `cyr run`
 4. return an accepted JSON response
 5. commit local evidence and update local working projection
+
+For the public beta release contract, this result is one required evidence item. The full beta criteria are defined in `docs/BETA_CRITERIA.md`.
 
 ## 5. What This Does Not Prove
 
@@ -87,7 +89,7 @@ This first-success path does not prove:
 - OS-level sandbox process isolation
 - enforcement-complete classification / MAC lattice
 - Pro / Pro+ / Enterprise / CITADEL feature scope
-- production or beta maturity
+- production maturity
 
 ## 6. Failure Reading
 

@@ -9,7 +9,19 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-TRACKED_TOP_LEVEL_ENTRY_SET = {"README.md", "docs", "scripts", "free"}
+TRACKED_TOP_LEVEL_ENTRY_SET = {
+    ".github",
+    ".gitignore",
+    "LICENSE",
+    "LICENSE-APACHE",
+    "LICENSE-MIT",
+    "README.ja.md",
+    "README.md",
+    "THIRD-PARTY-NOTICES.md",
+    "docs",
+    "free",
+    "scripts",
+}
 FORBIDDEN_PARTS = {"target", "__pycache__"}
 FORBIDDEN_NAMES = {".DS_Store"}
 FORBIDDEN_SUFFIXES = {".pyc"}
@@ -18,8 +30,16 @@ CARRIER_ONLY_EXCLUDED_RELATIVE_PATHS = {
 }
 REQUIRED_RELATIVE_PATHS = {
     Path("README.md"),
+    Path("README.ja.md"),
+    Path(".github/workflows/public-ci.yml"),
+    Path(".gitignore"),
+    Path("LICENSE"),
+    Path("LICENSE-APACHE"),
+    Path("LICENSE-MIT"),
+    Path("THIRD-PARTY-NOTICES.md"),
     Path("docs/CYRUNE_Free_Public_Index.md"),
     Path("docs/GETTING_STARTED.md"),
+    Path("docs/BETA_CRITERIA.md"),
     Path("docs/TROUBLESHOOTING.md"),
     Path("scripts/prepare-public-run.sh"),
     Path("scripts/doctor.sh"),
@@ -43,6 +63,7 @@ TRACKED_SCRIPT_RELATIVE_PATHS = {
     Path("scripts/prepare-public-run.sh"),
     Path("scripts/doctor.sh"),
     Path("scripts/first-success.sh"),
+    Path("scripts/check-beta-release-contract.sh"),
 }
 TRACKED_DEV_DOC_EXACT_RELATIVE_PATHS = {
     Path("free/v0.1/dev-docs/00-TARGET_SYSTEM.md"),
@@ -130,7 +151,16 @@ def is_forbidden_relative_path(relative_path: Path) -> bool:
 
 
 def is_allowed_tracked_relative_path(relative_path: Path) -> bool:
-    if relative_path == Path("README.md"):
+    if relative_path in {
+        Path("README.md"),
+        Path("README.ja.md"),
+        Path(".gitignore"),
+        Path("LICENSE"),
+        Path("LICENSE-APACHE"),
+        Path("LICENSE-MIT"),
+        Path("THIRD-PARTY-NOTICES.md"),
+        Path(".github/workflows/public-ci.yml"),
+    }:
         return True
     if relative_path.parts[:1] == ("docs",):
         return True
@@ -152,6 +182,11 @@ def is_allowed_tracked_relative_path(relative_path: Path) -> bool:
     } and len(relative_path.parts) == 5:
         return True
     if relative_path.parts[:4] == ("free", "v0.1", "dev-docs", "summary"):
+        return True
+    if (
+        relative_path.parts[:4] == ("free", "v0.1", "dev-docs", "90-reports")
+        and relative_path.suffix == ".md"
+    ):
         return True
     if relative_path in TRACKED_DEV_DOC_EXACT_RELATIVE_PATHS:
         return True

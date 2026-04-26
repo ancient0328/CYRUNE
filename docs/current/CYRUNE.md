@@ -3,7 +3,7 @@
 ## 0. Public Entry
 
 For the current accepted public corpus of CYRUNE Free v0.1, start with `../CYRUNE_Free_Public_Index.md`.
-This page is a product overview of CYRUNE as a whole. It is not a claim that this Free v0.1 public alpha implements every CYRUNE or CITADEL enforcement layer.
+This page is a product overview of CYRUNE as a whole. It is not a claim that this Free v0.1 public beta implements every CYRUNE or CITADEL enforcement layer.
 
 ## 1. What is CYRUNE?
 
@@ -85,7 +85,7 @@ The CYRUNE design uses classification labels:
 * RESTRICTED
 * SECRET
 
-In this Free v0.1 public alpha, classification / MAC is a product intent and claim boundary. This public source surface does not claim an enforcement-complete classification lattice or clearance governance.
+In this Free v0.1 public beta, classification / MAC is a product intent and claim boundary. This public source surface does not claim an enforcement-complete classification lattice or clearance governance.
 
 ---
 
@@ -163,7 +163,7 @@ Unlike SaaS systems, CYRUNE is designed for environments where external communic
 
 ## 9. Update Model
 
-This section describes the product-wide target model. CYRUNE Free v0.1 public alpha does not claim a signed native distribution, signed updater, signed update channel, or installer channel.
+This section describes the product-wide target model. CYRUNE Free v0.1 public beta does not claim a signed native distribution, signed updater, signed update channel, or installer channel.
 
 * Major releases: 18-month cycle
 * Patch releases: security fixes only
@@ -171,7 +171,7 @@ This section describes the product-wide target model. CYRUNE Free v0.1 public al
 * Signed update packages
 * Version recorded in Ledger
 
-For this Free v0.1 public alpha, the signed update model is a product-wide design direction, not a shipped updater or signed update channel. This repository does not include signing / notarization workflow, concrete signing values, or signed update package delivery.
+For this Free v0.1 public beta, the signed update model is a product-wide design direction, not a shipped updater or signed update channel. This repository does not include signing / notarization workflow, concrete signing values, or signed update package delivery.
 
 ---
 
