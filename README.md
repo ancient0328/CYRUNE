@@ -8,16 +8,22 @@ This repository is a public-facing Free v0.1 publication unit. It is not a nativ
 
 - `main` is the latest public repository surface.
 - SemVer tags, such as `v0.1.0`, are immutable snapshots of this public repository content.
-- `v0.1.0` is the intended immutable CYRUNE Free v0.1 public alpha snapshot tag.
+- `v0.1.0` is the published immutable CYRUNE Free v0.1 public alpha snapshot tag.
 - `v0.1` is treated as a version marker / compatibility tag, not as a branch name.
 - This repository does not use a `v0.1` branch. A maintenance branch, if ever needed, should use a non-conflicting name such as `release/v0.1`.
 - Version tags do not expand the public alpha claim boundary described below.
 
 ## Language
 
-English is the primary language for the public GitHub repository entry path.
-Japanese documents are companion material where they are maintained explicitly, such as `docs/current/CYRUNE_ProblemStatement-ja.md`, `docs/USER_GUIDE-ja.md`, and `docs/ENGINEERING_SPEC-ja.md`.
-Companion translations do not create a separate authority surface; the public index defines the reading order.
+English is the primary language for the public repository entry path.
+
+Japanese companion documents are available for readers who need them:
+
+- [README.ja.md](README.ja.md)
+- [docs/ja/](docs/ja/)
+- [Japanese technical problem statement](docs/current/CYRUNE_ProblemStatement-ja.md)
+
+Japanese companion documents do not override the English public claim boundary in this README, [Getting Started](docs/GETTING_STARTED.md), or [Public Index](docs/CYRUNE_Free_Public_Index.md).
 
 ## Start Here
 

@@ -9,4 +9,5 @@ Language stance:
 - English is primary for the public GitHub entry path.
 - `CYRUNE_ProblemStatement-En.md` is the primary problem statement.
 - `CYRUNE_ProblemStatement-ja.md` is the Japanese companion for the same structural problem framing.
+- The English and Japanese problem statements are not guaranteed to be line-by-line translations of each other.
 - Companion documents do not create a separate authority surface.

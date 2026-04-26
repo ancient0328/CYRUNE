@@ -163,6 +163,8 @@ Unlike SaaS systems, CYRUNE is designed for environments where external communic
 
 ## 9. Update Model
 
+This section describes the product-wide target model. CYRUNE Free v0.1 public alpha does not claim a signed native distribution, signed updater, signed update channel, or installer channel.
+
 * Major releases: 18-month cycle
 * Patch releases: security fixes only
 * No self-update mechanism
