@@ -1,6 +1,6 @@
 # CYRUNE Free v0.1
 
-CYRUNE Free v0.1 is a **public beta** repository for the single-user CYRUNE Free runtime. It is shaped as a release contract for the first-success path: prepare the public-run state, run `cyr doctor`, then run one no-LLM `cyr run` through the packaged Control Plane path.
+CYRUNE Free v0.1 is a **public beta** repository for the single-user CYRUNE Free runtime. It is shaped as a release contract for the first-success path: prepare the public-run state, run `cyr doctor`, then run `cyr verify first-success` through the packaged Control Plane path.
 
 This repository is a public-facing Free v0.1 publication unit. It is not a native installer, not a signed desktop distribution, and not the Pro / Enterprise / CITADEL product surface.
 
@@ -40,14 +40,14 @@ Japanese companion documents do not override the English public claim boundary i
 - The public repository contains the Free v0.1 source surface and the public scripts needed for the first-success flow.
 - `prepare-public-run.sh` downloads and validates the pinned beta carrier, then prepares local state under `free/v0.1/0/target/public-run/`.
 - `doctor.sh` checks that the prepared state is diagnosable.
-- `first-success.sh` runs a no-LLM request and returns the accepted JSON response when the path succeeds.
+- `first-success.sh` runs the semantic first-success verifier and emits `first-success-report.json`; success means the verifier returned `outcome: "accepted"` and the matching terminal binding marker exists.
 - The beta release contract binds the tracked source, beta carrier asset, CI, docs, first-success evidence, and Closed Gate Report.
 
 ## Current Claim Boundary
 
 - Sandbox scope: this beta documents and uses sandbox specification normalization / validation. It does not claim OS-level process isolation.
 - Classification / MAC scope: CYRUNE product docs describe the intended classification and MAC model. This Free v0.1 public beta does not claim enforcement-complete classification / MAC lattice or clearance governance.
-- Evidence scope: first-success creates local runtime evidence for the no-LLM path. It does not prove production maturity, native distribution, signing, notarization, Pro features, Enterprise governance, or CITADEL hardening.
+- Evidence scope: first-success creates local runtime evidence for the no-LLM path and terminal-binds the accepted evidence to `working/working.json`. It does not prove production maturity, native distribution, signing, notarization, Pro features, Enterprise governance, or CITADEL hardening.
 - Signed update scope: product-wide docs may describe signed update or no-self-update discipline as a design direction. This Free v0.1 public beta does not ship a signed updater or signed update channel.
 
 ## Repository Contents

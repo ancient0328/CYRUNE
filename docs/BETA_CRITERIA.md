@@ -34,8 +34,8 @@ A public beta claim requires all of the following evidence to exist for the same
 5. exact asset size and SHA256,
 6. carrier `RELEASE_MANIFEST.json` matching the beta asset name and package root,
 7. CI success for the beta candidate,
-8. fresh `prepare-public-run.sh` -> `doctor.sh` -> `first-success.sh` result,
-9. returned `evidence_id` and expected accepted-run evidence files,
+8. fresh `prepare-public-run.sh` -> `doctor.sh` -> `first-success.sh` verifier report,
+9. returned `evidence_id`, expected accepted-run evidence files, matching terminal binding marker, and visible `working/working.json` raw hash,
 10. public docs consistency scan,
 11. license / third-party notice boundary check,
 12. Closed Gate Report under `free/v0.1/dev-docs/90-reports/`.
@@ -86,8 +86,8 @@ Treat the beta candidate as not established if any of the following occurs:
 - carrier `RELEASE_MANIFEST.json` does not match the beta asset,
 - CI fails,
 - `prepare-public-run.sh`, `doctor.sh`, or `first-success.sh` exits non-zero,
-- first-success output omits required IDs,
-- expected evidence files are missing,
+- first-success verifier output omits required IDs or does not report `verified: true` and `outcome: "accepted"`,
+- expected evidence files, terminal binding marker, or visible `working/working.json` hash binding are missing,
 - public docs imply an unsupported product scope,
 - the Closed Gate Report is missing or has any Gate below `Yes`.
 

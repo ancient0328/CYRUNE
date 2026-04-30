@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
-use std::thread;
+use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 use thiserror::Error;
 use time::OffsetDateTime;
@@ -332,7 +332,7 @@ pub fn execute_local_cli_single_process(
             );
         }
     };
-    if let Some(stdin) = child.stdin.as_mut() {
+    if let Some(mut stdin) = child.stdin.take() {
         let payload_bytes = match serde_json::to_vec(&payload) {
             Ok(payload_bytes) => payload_bytes,
             Err(error) => {
@@ -354,7 +354,11 @@ pub fn execute_local_cli_single_process(
                 );
             }
         };
-        if let Err(error) = stdin.write_all(&payload_bytes).and_then(|_| stdin.flush()) {
+        let write_result = stdin
+            .write_all(&payload_bytes)
+            .and_then(|_| stdin.write_all(b"\n"))
+            .and_then(|_| stdin.flush());
+        if let Err(error) = write_result {
             let _ = child.kill();
             let _ = child.wait();
             return failure_envelope(
@@ -370,8 +374,8 @@ pub fn execute_local_cli_single_process(
                 format!("approved execution adapter stdin transport failed: {error}"),
             );
         }
+        drop(stdin);
     }
-    let _ = child.stdin.take();
 
     let output = match collect_process_output(child, context.timeout_policy.execution_timeout_s) {
         Ok(output) => output,
@@ -526,13 +530,15 @@ fn collect_process_output(
     let timeout = Duration::from_secs(timeout_s);
     let poll_interval = Duration::from_millis(10);
     let started = Instant::now();
+    let stdout_reader = spawn_pipe_reader(child.stdout.take());
+    let stderr_reader = spawn_pipe_reader(child.stderr.take());
     loop {
         if let Some(status) = child.try_wait()? {
             return Ok(CollectedProcessOutput {
                 exit_status: status.code(),
                 stdio: StdioCapture {
-                    stdout: read_pipe(child.stdout.take())?,
-                    stderr: read_pipe(child.stderr.take())?,
+                    stdout: join_pipe_reader(stdout_reader)?,
+                    stderr: join_pipe_reader(stderr_reader)?,
                 },
                 finished_at: timestamp_now_rfc3339(),
                 timed_out: false,
@@ -544,8 +550,8 @@ fn collect_process_output(
             return Ok(CollectedProcessOutput {
                 exit_status: status.code(),
                 stdio: StdioCapture {
-                    stdout: read_pipe(child.stdout.take())?,
-                    stderr: read_pipe(child.stderr.take())?,
+                    stdout: join_pipe_reader(stdout_reader)?,
+                    stderr: join_pipe_reader(stderr_reader)?,
                 },
                 finished_at: timestamp_now_rfc3339(),
                 timed_out: true,
@@ -555,7 +561,22 @@ fn collect_process_output(
     }
 }
 
-fn read_pipe(pipe: Option<impl Read>) -> Result<String, ExecutionResultError> {
+fn spawn_pipe_reader<R>(pipe: Option<R>) -> JoinHandle<Result<String, ExecutionResultError>>
+where
+    R: Read + Send + 'static,
+{
+    thread::spawn(move || read_pipe(pipe))
+}
+
+fn join_pipe_reader(
+    handle: JoinHandle<Result<String, ExecutionResultError>>,
+) -> Result<String, ExecutionResultError> {
+    handle.join().map_err(|_| {
+        ExecutionResultError::Invalid("execution adapter pipe reader panicked".to_string())
+    })?
+}
+
+fn read_pipe<R: Read>(pipe: Option<R>) -> Result<String, ExecutionResultError> {
     let Some(mut pipe) = pipe else {
         return Ok(String::new());
     };

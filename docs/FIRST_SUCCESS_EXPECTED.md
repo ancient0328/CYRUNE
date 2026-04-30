@@ -21,17 +21,25 @@ free/v0.1/0/target/public-run/home
 Then it runs:
 
 ```bash
-cyr run --no-llm --input "ship-goal public first success"
+cyr verify first-success
 ```
 
 ## 2. Expected Stdout Shape
 
-On success, stdout is a raw JSON object from `cyr run`. It must include non-empty values for:
+On success, stdout is a verifier report JSON object. It must include:
 
+- `schema_version` with value `cyrune.free.first-success-verifier-report.v1`
+- `verified` with value `true`
+- `outcome` with value `accepted`
 - `correlation_id`
 - `run_id`
 - `evidence_id`
 - `policy_pack_id`
+- `working_hash_after`
+- `evidence_dir`
+- `terminal_binding_path`
+- `state_root`
+- `cyrune_home`
 
 The expected policy pack is:
 
@@ -39,7 +47,7 @@ The expected policy pack is:
 cyrune-free-default
 ```
 
-The response may include additional fields such as `response_to`, `output`, `citation_bundle_id`, and `working_hash_after`.
+The report contains the full accepted response under `response`.
 
 ## 3. Expected Local Evidence
 
@@ -67,15 +75,23 @@ The working projection is expected under:
 free/v0.1/0/target/public-run/home/working/working.json
 ```
 
+The terminal binding marker is expected under:
+
+```text
+free/v0.1/0/target/public-run/home/ledger/terminal-bindings/<evidence_id>.json
+```
+
+The verifier accepts the run only when the response, manifest, evidence files, terminal binding marker, and `working/working.json` raw hash agree.
+
 ## 4. What This Result Means
 
 This first-success path means the local public beta repository has performed these steps in the prepared public-run state:
 
 1. prepare local public-run state
 2. run `cyr doctor` against that state
-3. execute one no-LLM `cyr run`
-4. return an accepted JSON response
-5. commit local evidence and update local working projection
+3. execute one no-LLM run through `cyr verify first-success`
+4. return a verifier report with `outcome: "accepted"`
+5. commit local evidence, update local working projection, and write the terminal binding marker
 
 For the public beta release contract, this result is one required evidence item. The full beta criteria are defined in `docs/BETA_CRITERIA.md`.
 
@@ -97,11 +113,13 @@ Treat the result as failed if any of the following are true:
 
 - the script exits non-zero
 - stdout is not a JSON object
-- `correlation_id`, `run_id`, `evidence_id`, or `policy_pack_id` is missing or empty
+- `verified` is not `true` or `outcome` is not `accepted`
+- `correlation_id`, `run_id`, `evidence_id`, `policy_pack_id`, `state_root`, or `cyrune_home` is missing or empty
 - `policy_pack_id` is not `cyrune-free-default`
 - the evidence directory for the returned `evidence_id` is missing
 - any expected accepted-run evidence file listed in section 3 is missing
 - `working/working.json` is missing after a reported success
+- the terminal binding marker for the returned `evidence_id` is missing
 
 For remediation, follow `TROUBLESHOOTING.md`.
 

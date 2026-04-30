@@ -44,7 +44,7 @@ product-first entry point は root `README.md` と `docs/GETTING_STARTED.md` で
 この public index が current public truth として扱うものは次です。
 
 1. CYRUNE Free v0.1 は single-user Free runtime の public beta repository です。
-2. documented first-success path は `prepare-public-run.sh` -> `doctor.sh` -> `first-success.sh` です。
+2. documented first-success path は `prepare-public-run.sh` -> `doctor.sh` -> `first-success.sh` です。`first-success.sh` は `cyr verify first-success` report を出力します。
 3. `cyr` は prepared public-run state 内の user-facing entry command です。
 4. `BUNDLE_ROOT` は runtime authority root です。
 5. `CYRUNE_HOME` は local state であり、product authority ではありません。

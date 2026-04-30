@@ -14,7 +14,7 @@ pub use id::{
 };
 pub use path_label::PathLabel;
 pub use run_request::{IoMode, RunKind, RunRequest};
-pub use run_result::{RunAccepted, RunRejected};
+pub use run_result::{RunAccepted, RunOutcome, RunRejected};
 
 pub const CRATE_IDENTITY: &str = "cyrune-core-contract";
 

@@ -23,7 +23,7 @@ CYRUNE Free v0.1 は、単一ユーザー向け CYRUNE Free runtime の **public
 
 ## この beta が主張する範囲
 
-この public beta は、`prepare-public-run.sh`、`doctor.sh`、`first-success.sh` による first-success path を、source、carrier、release asset、CI、docs、runtime evidence、Closed Gate Report を結合した release contract として公開します。
+この public beta は、`prepare-public-run.sh`、`doctor.sh`、`first-success.sh` による first-success path を、source、carrier、release asset、CI、docs、runtime evidence、Closed Gate Report を結合した release contract として公開します。`first-success.sh` の成功は raw `cyr run` の終了ではなく、`cyr verify first-success` の `outcome: "accepted"` report と terminal binding marker によって判定します。
 
 この public beta は、native installer、署名済み desktop distribution、OS-level sandbox enforcement、enforcement-complete classification / MAC、Pro / Enterprise / CITADEL の機能完成を主張しません。
 

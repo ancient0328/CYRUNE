@@ -6,7 +6,9 @@ use crate::execution_result::{
     ExecutionResultEnvelope, NoLlmAcceptedDraft, TerminalStatus, execute_local_cli_single_process,
 };
 use crate::ledger::{
-    AcceptedLedgerInput, LedgerError, LedgerWriter, RejectedLedgerInput, write_working_projection,
+    AcceptedLedgerInput, EvidenceOutcome, LedgerError, LedgerWriter, RejectedLedgerInput,
+    TERMINAL_BINDING_SCHEMA_VERSION, TerminalBindingRecord, raw_file_sha256, visible_working_hash,
+    write_terminal_binding, write_working_projection,
 };
 use crate::memory::MemoryFacade;
 use crate::policy::{
@@ -20,7 +22,9 @@ use crate::working::{
     WorkingCandidate, WorkingCandidateCategory, WorkingError, WorkingProjection,
     WorkingRebuildInput, WorkingRebuildOutput, WorkingSlotKind, rebuild_working,
 };
-use cyrune_core_contract::{DenialId, ReasonKind, RuleId, RunAccepted, RunRejected, RunRequest};
+use cyrune_core_contract::{
+    DenialId, ReasonKind, RuleId, RunAccepted, RunOutcome, RunRejected, RunRequest,
+};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::fs;
@@ -28,6 +32,11 @@ use std::path::Path;
 use thiserror::Error;
 use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
+
+const RULE_LEDGER_COMMIT_FAILED: &str = "LDG-001";
+const RULE_WORKING_UPDATE_FAILED: &str = "WUP-001";
+const RULE_WORKING_HASH_MISMATCH: &str = "WUP-002";
+const RULE_TERMINAL_BINDING_FAILED: &str = "LDG-002";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AcceptedTurnDraft {
@@ -189,8 +198,7 @@ pub fn finalize_accepted_turn(
         Ok(committed) => committed,
         Err(_) => {
             let failure = FailureSpec::ledger_commit_failed(
-                cyrune_core_contract::RuleId::parse("LDG-001")
-                    .expect("static rule_id must be valid"),
+                RuleId::parse(RULE_LEDGER_COMMIT_FAILED).expect("static rule_id must be valid"),
                 "ledger commit failed before evidence became visible",
                 "ledger path と atomic commit 条件を確認して再実行する",
             )?;
@@ -219,40 +227,123 @@ pub fn finalize_accepted_turn(
         write_working_projection(writer.cyrune_home(), &draft.working_output.projection)
     {
         let failure = FailureSpec::working_update_failed(
-            cyrune_core_contract::RuleId::parse("WUP-001").expect("static rule_id must be valid"),
+            RuleId::parse(RULE_WORKING_UPDATE_FAILED).expect("static rule_id must be valid"),
             format!("working projection update failed after ledger commit: {error}"),
             "working/working.json を更新可能な状態にして再実行する",
         )?;
-        policy_trace.record_failure(&failure);
-        return finalize_rejected_turn(
-            writer,
-            RejectedTurnDraft {
-                request: draft.request,
-                context: draft.context,
-                created_at: draft.created_at,
-                started_at: draft.started_at,
-                finished_at: draft.finished_at,
-                exit_status: draft.exit_status,
-                working_hash_before: draft.working_hash_before,
-                query_summary: Some(draft.query_summary),
-                failure,
-                policy_trace,
-                stdout: draft.stdout,
-                stderr: draft.stderr,
-            },
-        );
+        return finalize_post_commit_rejection(writer, draft, policy_trace, failure);
+    }
+
+    let working_json_hash = match visible_working_hash(writer.cyrune_home()) {
+        Ok(hash) => hash,
+        Err(error) => {
+            let failure = FailureSpec::working_update_failed(
+                RuleId::parse(RULE_WORKING_UPDATE_FAILED).expect("static rule_id must be valid"),
+                format!("visible working hash read failed after ledger commit: {error}"),
+                "working/working.json を読み取り可能な状態にして再実行する",
+            )?;
+            return finalize_post_commit_rejection(writer, draft, policy_trace, failure);
+        }
+    };
+    if working_json_hash != draft.working_output.working_hash {
+        let failure = FailureSpec::working_update_failed(
+            RuleId::parse(RULE_WORKING_HASH_MISMATCH).expect("static rule_id must be valid"),
+            format!(
+                "visible working hash mismatch after ledger commit: expected {}, got {}",
+                draft.working_output.working_hash, working_json_hash
+            ),
+            "working/working.json を accepted response と同一 raw hash にして再実行する",
+        )?;
+        return finalize_post_commit_rejection(writer, draft, policy_trace, failure);
+    }
+
+    let evidence_manifest_hash =
+        match raw_file_sha256(&accepted_commit.evidence_dir.join("manifest.json")) {
+            Ok(hash) => hash,
+            Err(error) => {
+                let failure = FailureSpec::ledger_commit_failed(
+                    RuleId::parse(RULE_TERMINAL_BINDING_FAILED)
+                        .expect("static rule_id must be valid"),
+                    format!("terminal binding preparation failed reading manifest: {error}"),
+                    "ledger/evidence の accepted manifest を読み取り可能な状態にして再実行する",
+                )?;
+                return finalize_post_commit_rejection(writer, draft, policy_trace, failure);
+            }
+        };
+    let evidence_hashes_hash =
+        match raw_file_sha256(&accepted_commit.evidence_dir.join("hashes.json")) {
+            Ok(hash) => hash,
+            Err(error) => {
+                let failure = FailureSpec::ledger_commit_failed(
+                    RuleId::parse(RULE_TERMINAL_BINDING_FAILED)
+                        .expect("static rule_id must be valid"),
+                    format!("terminal binding preparation failed reading hashes: {error}"),
+                    "ledger/evidence の accepted hashes を読み取り可能な状態にして再実行する",
+                )?;
+                return finalize_post_commit_rejection(writer, draft, policy_trace, failure);
+            }
+        };
+    let terminal_binding = TerminalBindingRecord {
+        schema_version: TERMINAL_BINDING_SCHEMA_VERSION.to_string(),
+        outcome: EvidenceOutcome::Accepted,
+        response_to: draft.request.request_id.clone(),
+        correlation_id: draft.context.correlation_id.clone(),
+        run_id: draft.context.run_id.clone(),
+        evidence_id: accepted_commit.evidence_id.clone(),
+        policy_pack_id: draft.context.policy_pack_id.clone(),
+        citation_bundle_id: citation.bundle.bundle_id.clone(),
+        working_hash_after: working_json_hash.clone(),
+        evidence_manifest_hash,
+        evidence_hashes_hash,
+        working_json_hash: working_json_hash.clone(),
+        created_at: timestamp_marker_now(),
+    };
+    if let Err(error) = write_terminal_binding(writer.cyrune_home(), &terminal_binding) {
+        let failure = FailureSpec::ledger_commit_failed(
+            RuleId::parse(RULE_TERMINAL_BINDING_FAILED).expect("static rule_id must be valid"),
+            format!("terminal binding marker write failed after working update: {error}"),
+            "ledger/terminal-bindings を更新可能な状態にして再実行する",
+        )?;
+        return finalize_post_commit_rejection(writer, draft, policy_trace, failure);
     }
 
     Ok(Ok(RunAccepted {
+        outcome: RunOutcome::Accepted,
         response_to: draft.request.request_id,
         correlation_id: draft.context.correlation_id,
         run_id: draft.context.run_id,
         evidence_id: accepted_commit.evidence_id,
         output: draft.output_draft,
         citation_bundle_id: citation.bundle.bundle_id,
-        working_hash_after: draft.working_output.working_hash,
+        working_hash_after: working_json_hash,
         policy_pack_id: draft.context.policy_pack_id,
     }))
+}
+
+fn finalize_post_commit_rejection(
+    writer: &mut LedgerWriter,
+    draft: AcceptedTurnDraft,
+    mut policy_trace: PolicyTrace,
+    failure: FailureSpec,
+) -> Result<Result<RunAccepted, RunRejected>, TurnError> {
+    policy_trace.record_failure(&failure);
+    finalize_rejected_turn(
+        writer,
+        RejectedTurnDraft {
+            request: draft.request,
+            context: draft.context,
+            created_at: draft.created_at,
+            started_at: draft.started_at,
+            finished_at: draft.finished_at,
+            exit_status: draft.exit_status,
+            working_hash_before: draft.working_hash_before,
+            query_summary: Some(draft.query_summary),
+            failure,
+            policy_trace,
+            stdout: draft.stdout,
+            stderr: draft.stderr,
+        },
+    )
 }
 
 pub fn finalize_rejected_turn(
@@ -274,6 +365,7 @@ pub fn finalize_rejected_turn(
         stderr: draft.stderr,
     })?;
     Ok(Err(RunRejected {
+        outcome: RunOutcome::Rejected,
         response_to: draft.request.request_id,
         correlation_id: draft.context.correlation_id,
         run_id: draft.context.run_id,

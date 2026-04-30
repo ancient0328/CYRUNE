@@ -4,6 +4,8 @@
 
 一次導線は英語です。日本語 companion は、root `README.md`、`docs/GETTING_STARTED.md`、`docs/CYRUNE_Free_Public_Index.md` の claim boundary を上書きしません。
 
+first-success の成功意味論は英語版 `docs/FIRST_SUCCESS_EXPECTED.md` を正とし、`cyr verify first-success` の accepted report と terminal binding marker に束縛されます。
+
 ## 文書
 
 - `CYRUNE_Free_Public_Index.md`

@@ -124,16 +124,19 @@ If public-run state is missing or invalid, it must fail instead of constructing 
 
 ## 8. first-success Contract
 
-`scripts/first-success.sh` must run the no-LLM first-success request through the prepared `cyr` binary.
+`scripts/first-success.sh` must run `cyr verify first-success` through the prepared `cyr` binary.
 
 Expected success:
 
 - exit code `0`
-- JSON output
+- verifier report JSON output
+- `verified` is `true`
+- `outcome` is `accepted`
 - `policy_pack_id` is `cyrune-free-default`
 - an `evidence_id` is returned
 - evidence files exist under `CYRUNE_HOME/ledger/evidence/<evidence_id>/`
 - `CYRUNE_HOME/working/working.json` exists
+- `CYRUNE_HOME/ledger/terminal-bindings/<evidence_id>.json` exists and binds the response, evidence hashes, and visible working hash
 
 ## 9. Change Impact Map
 
@@ -144,8 +147,9 @@ Changes to the following affect public-run behavior directly:
 - tar member safety validation
 - binary names and installation paths
 - `CYRUNE_HOME` layout
-- `cyr run --no-llm` output contract
+- `cyr verify first-success` report contract
 - evidence ledger paths
+- terminal binding marker paths
 - `working/working.json`
 
 Changes to the following affect public-reader interpretation:

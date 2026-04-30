@@ -2,6 +2,7 @@
 
 use crate::doctor::run_doctor;
 use crate::pack::{default_cyrune_home, default_daemon_binary_path, ensure_terminal_config};
+use crate::verify::run_verify;
 use crate::view::run_view;
 use cyrune_core_contract::{CorrelationId, IoMode, PathLabel, RequestId, RunKind, RunRequest};
 use cyrune_daemon::ipc::{
@@ -19,6 +20,12 @@ use time::macros::format_description;
 const REQUEST_ID_FORMAT: &[FormatItem<'static>] = format_description!("[year][month][day]");
 const DEFAULT_POLICY_PACK_ID: &str = "cyrune-free-default";
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct CapturedIpcResponse {
+    pub payload: serde_json::Value,
+    pub diagnostics: Vec<String>,
+}
+
 pub fn run_with_args(args: &[String]) -> Result<i32, String> {
     let Some(command) = args.first().map(String::as_str) else {
         return Err(usage().to_string());
@@ -26,6 +33,7 @@ pub fn run_with_args(args: &[String]) -> Result<i32, String> {
     match command {
         "shell" => run_shell(),
         "run" => run_command(&args[1..]),
+        "verify" => run_verify(&args[1..]),
         "view" => run_view(&args[1..]),
         "doctor" => run_doctor(),
         _ => Err(usage().to_string()),
@@ -70,6 +78,73 @@ pub fn invoke_daemon_single(command: IpcCommand, payload: Value) -> Result<Value
         serde_json::from_str(response).map_err(|error| error.to_string())?;
     match envelope.status {
         IpcStatus::Ok => Ok(envelope.payload),
+        IpcStatus::Error => Err(envelope
+            .payload
+            .get("message")
+            .and_then(Value::as_str)
+            .unwrap_or("daemon error")
+            .to_string()),
+        other => Err(format!("unexpected daemon response status: {other:?}")),
+    }
+}
+
+pub(crate) fn invoke_daemon_single_capture_stderr(
+    command: IpcCommand,
+    payload: Value,
+) -> Result<CapturedIpcResponse, String> {
+    let daemon_path = default_daemon_binary_path()?;
+    let cyrune_home = default_cyrune_home()?;
+    let message_id = next_message_id()?;
+    let request = RawRequestEnvelope {
+        version: IPC_VERSION.to_string(),
+        message_id: message_id.clone(),
+        command: command_name(&command).to_string(),
+        payload,
+    };
+    let mut child = Command::new(daemon_path)
+        .arg("serve-stdio")
+        .env("CYRUNE_HOME", &cyrune_home)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| error.to_string())?;
+    write_request_and_close_stdin(&mut child, &request)?;
+    let mut stdout = String::new();
+    child
+        .stdout
+        .as_mut()
+        .ok_or_else(|| "daemon stdout is unavailable".to_string())?
+        .read_to_string(&mut stdout)
+        .map_err(|error| error.to_string())?;
+    let mut stderr = String::new();
+    child
+        .stderr
+        .as_mut()
+        .ok_or_else(|| "daemon stderr is unavailable".to_string())?
+        .read_to_string(&mut stderr)
+        .map_err(|error| error.to_string())?;
+    let diagnostics = stderr
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(ToOwned::to_owned)
+        .collect::<Vec<_>>();
+    let status = child.wait().map_err(|error| error.to_string())?;
+    if !status.success() {
+        return Err(format!("daemon exited unsuccessfully: {status}"));
+    }
+    let response = stdout
+        .lines()
+        .find(|line| !line.trim().is_empty())
+        .ok_or_else(|| "daemon produced no response".to_string())?;
+    let envelope: ResponseEnvelope =
+        serde_json::from_str(response).map_err(|error| error.to_string())?;
+    match envelope.status {
+        IpcStatus::Ok => Ok(CapturedIpcResponse {
+            payload: envelope.payload,
+            diagnostics,
+        }),
         IpcStatus::Error => Err(envelope
             .payload
             .get("message")
@@ -297,7 +372,7 @@ fn build_run_request(args: &[String]) -> Result<RunRequest, String> {
     })
 }
 
-fn build_run_payload(request: &RunRequest) -> Result<Value, String> {
+pub(crate) fn build_run_payload(request: &RunRequest) -> Result<Value, String> {
     serde_json::to_value(request).map_err(|error| error.to_string())
 }
 
@@ -339,7 +414,7 @@ fn next_message_id() -> Result<String, String> {
 }
 
 fn usage() -> &'static str {
-    "usage: cyr <shell|run|view|doctor> ..."
+    "usage: cyr <shell|run|verify|view|doctor> ..."
 }
 
 #[cfg(test)]

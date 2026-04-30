@@ -10,7 +10,7 @@ Japanese companion guidance is available at `docs/ja/USER_GUIDE.md`.
 
 CYRUNE Free v0.1 is a single-user public beta package.
 
-It lets a local host prepare public-run state from the pinned beta carrier, run `cyr doctor`, and execute one no-LLM first-success request through the packaged Free v0.1 Control Plane path.
+It lets a local host prepare public-run state from the pinned beta carrier, run `cyr doctor`, and execute the no-LLM first-success semantic verifier through the packaged Free v0.1 Control Plane path.
 
 This public beta does not claim production maturity, native distribution, OS-level sandbox enforcement, enforcement-complete classification / MAC, Pro / Enterprise / CITADEL scope, signing, notarization, or installer distribution.
 
@@ -74,13 +74,13 @@ Expected result: a JSON object with `"status": "healthy"`.
 
 ### 5.3 first-success
 
-This step runs:
+This step runs the semantic verifier:
 
 ```bash
-cyr run --no-llm --input "ship-goal public first success"
+cyr verify first-success
 ```
 
-Expected result: a JSON object containing `correlation_id`, `run_id`, `evidence_id`, and `policy_pack_id`.
+Expected result: a JSON report containing `verified: true`, `outcome: "accepted"`, `correlation_id`, `run_id`, `evidence_id`, `policy_pack_id`, `state_root`, and `cyrune_home`.
 
 Read `docs/FIRST_SUCCESS_EXPECTED.md` for the expected evidence paths and output fields.
 
@@ -96,6 +96,7 @@ After a successful first-success step, inspect:
 
 - `free/v0.1/0/target/public-run/home/ledger/manifests/index.jsonl`
 - `free/v0.1/0/target/public-run/home/ledger/evidence/<evidence_id>/`
+- `free/v0.1/0/target/public-run/home/ledger/terminal-bindings/<evidence_id>.json`
 - `free/v0.1/0/target/public-run/home/working/working.json`
 
 ## 7. Failure Handling
@@ -108,7 +109,7 @@ If `first-success.sh` fails, rerun `prepare-public-run.sh`, confirm `doctor.sh` 
 
 ## 8. Non-Claims
 
-Successful first-success proves only the documented public beta first-success path for the no-LLM Free v0.1 flow. The full beta release contract additionally requires the source, carrier asset, CI, public docs, and Closed Gate evidence defined in `docs/BETA_CRITERIA.md`.
+Successful first-success means the C5 verifier accepted the response, evidence bundle, terminal binding marker, and visible working projection for the documented no-LLM Free v0.1 flow. The full beta release contract additionally requires the source, carrier asset, CI, public docs, and Closed Gate evidence defined in `docs/BETA_CRITERIA.md`.
 
 It does not prove:
 

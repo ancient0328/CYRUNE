@@ -8,7 +8,7 @@
 
 CYRUNE Free v0.1 は、single-user 向けの public beta package です。
 
-この公開面では、ローカル host 上で pinned beta carrier から public-run state を準備し、`cyr doctor` を実行し、packaged Free v0.1 Control Plane path を通して no-LLM の first-success request を 1 回実行できます。
+この公開面では、ローカル host 上で pinned beta carrier から public-run state を準備し、`cyr doctor` を実行し、packaged Free v0.1 Control Plane path を通して no-LLM の first-success semantic verifier を 1 回実行できます。
 
 この public beta は、production maturity、native distribution、OS-level sandbox enforcement、enforcement-complete classification / MAC、Pro / Enterprise / CITADEL scope、signing、notarization、installer distribution を主張しません。
 
@@ -73,13 +73,13 @@ host には次が必要です。
 
 ### 5.3 first-success
 
-この step は次を実行します。
+この step は semantic verifier を実行します。
 
 ```bash
-cyr run --no-llm --input "ship-goal public first success"
+cyr verify first-success
 ```
 
-期待結果は、`correlation_id`、`run_id`、`evidence_id`、`policy_pack_id` を含む JSON object です。
+期待結果は、`verified: true`、`outcome: "accepted"`、`correlation_id`、`run_id`、`evidence_id`、`policy_pack_id`、`state_root`、`cyrune_home` を含む JSON report です。
 
 生成される evidence path と output field の詳細は、`docs/FIRST_SUCCESS_EXPECTED.md` を参照します。
 
@@ -95,6 +95,7 @@ free/v0.1/0/target/public-run/
 
 - `free/v0.1/0/target/public-run/home/ledger/manifests/index.jsonl`
 - `free/v0.1/0/target/public-run/home/ledger/evidence/<evidence_id>/`
+- `free/v0.1/0/target/public-run/home/ledger/terminal-bindings/<evidence_id>.json`
 - `free/v0.1/0/target/public-run/home/working/working.json`
 
 ## 7. 失敗時の扱い
@@ -107,7 +108,7 @@ free/v0.1/0/target/public-run/
 
 ## 8. 非主張範囲
 
-first-success の成功が示すのは、Free v0.1 no-LLM flow の public beta first-success path が document 通りに通ることです。beta release contract 全体には、`docs/BETA_CRITERIA.md` に定義された source、carrier asset、CI、public docs、Closed Gate evidence も必要です。
+first-success の成功が示すのは、C5 verifier が response、evidence bundle、terminal binding marker、visible working projection を accepted として検証したことです。beta release contract 全体には、`docs/BETA_CRITERIA.md` に定義された source、carrier asset、CI、public docs、Closed Gate evidence も必要です。
 
 それは次を証明しません。
 

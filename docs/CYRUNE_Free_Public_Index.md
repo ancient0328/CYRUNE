@@ -51,7 +51,7 @@ It is not a path a public GitHub reader needs to have locally.
 This public index treats the following as current public truth:
 
 1. CYRUNE Free v0.1 is a public beta repository for the single-user Free runtime.
-2. The documented first-success path is `prepare-public-run.sh` -> `doctor.sh` -> `first-success.sh`.
+2. The documented first-success path is `prepare-public-run.sh` -> `doctor.sh` -> `first-success.sh`, where `first-success.sh` emits the `cyr verify first-success` report.
 3. `cyr` is the user-facing entry command inside the prepared public-run state.
 4. `BUNDLE_ROOT` is the runtime authority root.
 5. `CYRUNE_HOME` is local state, not product authority.

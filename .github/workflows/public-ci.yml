@@ -6,6 +6,12 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  BETA_SOURCE_SHA: 062cd58548e9f66e2371f580edae8f641d0d05f7
+  BETA_TAG_TARGET: 61eb4c68630600d9b1a7f325fd6d06759ede846c
+  BETA_RELEASE_ID: "313683966"
+  BETA_ASSET_ID: "405673798"
+  BETA_ASSET_DIGEST: sha256:73654922f0f1c170ce34001d6f1021b72ec9eb8c28aa8a81a3d572ccde00c938
+  BETA_CI_RUN_ID: "24947529643"
 
 jobs:
   public-envelope:
@@ -20,10 +26,12 @@ jobs:
           done
 
       - name: Check Python helper syntax
-        run: python3 -m py_compile free/v0.1/0/scripts/*.py
+        run: |
+          python3 -m py_compile free/v0.1/0/scripts/*.py
+          python3 -m py_compile scripts/verify-beta-release-contract.py
 
-      - name: Check beta release contract predicates
-        run: ./scripts/check-beta-release-contract.sh
+      - name: Check public envelope predicates
+        run: bash scripts/check-public-envelope.sh
 
       - name: Check Rust formatting
         run: cargo fmt --manifest-path free/v0.1/0/Cargo.toml --all -- --check
@@ -37,13 +45,39 @@ jobs:
       - name: Prepare public first-success state
         run: ./scripts/prepare-public-run.sh
 
-      - name: Check prepared beta carrier contract
-        run: ./scripts/check-beta-release-contract.sh
+      - name: Check prepared public envelope predicates
+        run: bash scripts/check-public-envelope.sh
 
-      - name: Check public first-success path
+      - name: Check public first-success semantic verifier
+        id: first_success_verifier
         run: |
-          ./scripts/doctor.sh
-          ./scripts/first-success.sh
+          bash scripts/doctor.sh
+          bash scripts/first-success.sh
+
+      - name: Upload public first-success report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-first-success-report
+          path: free/v0.1/0/target/public-run/first-success-report.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Check beta release contract
+        if: github.event_name == 'push' && (github.sha == env.BETA_SOURCE_SHA || github.sha == env.BETA_TAG_TARGET)
+        run: |
+          bash scripts/check-beta-release-contract.sh \
+            --candidate-root "$PWD" \
+            --source-sha "$BETA_SOURCE_SHA" \
+            --tag-target "$BETA_TAG_TARGET" \
+            --release-id "$BETA_RELEASE_ID" \
+            --asset-id "$BETA_ASSET_ID" \
+            --asset-digest "$BETA_ASSET_DIGEST" \
+            --ci-run-id "$BETA_CI_RUN_ID" \
+            --cgr-output-target "free/v0.1/dev-docs/90-reports/20260430-public-EVID-BETA-2-terminal-evidence-release-contract.md" \
+            --first-success-report "free/v0.1/0/target/public-run/first-success-report.json"
 
       - name: Check Rust tests
+        env:
+          CYRUNE_TEST_SHIPPING_HOME_ROOT: ${{ github.workspace }}/free/v0.1/0/target/public-run/home
         run: cargo test --manifest-path free/v0.1/0/Cargo.toml --workspace --all-targets

@@ -18,7 +18,7 @@ use cyrune_control_plane::turn::{
 };
 use cyrune_control_plane::working::WorkingProjection;
 use cyrune_core_contract::{
-    CorrelationId, DenialId, RuleId, RunId, RunKind, RunRejected, RunRequest,
+    CorrelationId, DenialId, RuleId, RunId, RunKind, RunOutcome, RunRejected, RunRequest,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -1112,6 +1112,7 @@ fn commit_rejection(
         })
         .map_err(|error| CommandError::Invalid(error.to_string()))?;
     Ok(RunRejected {
+        outcome: RunOutcome::Rejected,
         response_to: request.request_id.clone(),
         correlation_id: context.correlation_id,
         run_id: context.run_id,
@@ -1518,7 +1519,7 @@ mod tests {
     };
     use serde_json::json;
     use std::fs;
-    use std::path::{Path, PathBuf};
+    use std::path::Path;
     use tempfile::tempdir;
 
     const ALT_POLICY_JSON: &str = r#"{
@@ -1542,6 +1543,48 @@ mod tests {
             fs::create_dir_all(parent).unwrap();
         }
         fs::write(path, content).unwrap();
+    }
+
+    fn read_packaged_embedding_fixture(
+        embedding_source_root: &std::path::Path,
+        relative_path: &str,
+    ) -> Vec<u8> {
+        let source_path = embedding_source_root.join(relative_path);
+        match fs::read(&source_path) {
+            Ok(contents) => contents,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                let shipping_home = std::env::var_os("CYRUNE_TEST_SHIPPING_HOME_ROOT")
+                    .map(std::path::PathBuf::from)
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "missing packaged embedding fixture: source={} not found; CYRUNE_TEST_SHIPPING_HOME_ROOT is not set",
+                            source_path.display()
+                        )
+                    });
+                if shipping_home.as_os_str().is_empty() || !shipping_home.is_absolute() {
+                    panic!(
+                        "CYRUNE_TEST_SHIPPING_HOME_ROOT must be an absolute path: {}",
+                        shipping_home.display()
+                    );
+                }
+                let fallback_path = shipping_home.join("embedding").join(relative_path);
+                fs::read(&fallback_path).unwrap_or_else(|fallback_error| {
+                    panic!(
+                        "missing packaged embedding fixture: source={} not found; fallback={} failed: {}",
+                        source_path.display(),
+                        fallback_path.display(),
+                        fallback_error
+                    )
+                })
+            }
+            Err(error) => {
+                panic!(
+                    "failed to read packaged embedding source fixture {}: {}",
+                    source_path.display(),
+                    error
+                )
+            }
+        }
     }
 
     fn write_packaged_distribution(
@@ -1684,7 +1727,13 @@ mod tests {
         bundle_root: &std::path::Path,
     ) {
         let crane_root = detect_crane_root().unwrap();
-        let embedding_source_root = complete_shipping_embedding_root();
+        let workspace_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..");
+        let embedding_source_root = workspace_root
+            .join("resources")
+            .join("bundle-root")
+            .join("embedding");
         let home_template_root = distribution_root
             .join("share")
             .join("cyrune")
@@ -1714,8 +1763,8 @@ mod tests {
                 "artifacts/multilingual-e5-small/special_tokens_map.json",
                 "artifacts/multilingual-e5-small/tokenizer_config.json",
             ] {
-                let source_path = embedding_source_root.join(relative_path);
-                let contents = fs::read(&source_path).unwrap();
+                let contents =
+                    read_packaged_embedding_fixture(&embedding_source_root, relative_path);
                 write_fixture(&bundle_root.join("embedding").join(relative_path), "");
                 fs::write(bundle_root.join("embedding").join(relative_path), &contents).unwrap();
                 write_fixture(
@@ -1774,44 +1823,6 @@ mod tests {
             )
             .unwrap(),
         );
-    }
-
-    fn workspace_root() -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("..")
-            .join("..")
-    }
-
-    fn complete_shipping_embedding_root() -> PathBuf {
-        let mut candidates = Vec::new();
-        if let Some(root) = std::env::var_os("CYRUNE_TEST_SHIPPING_HOME_ROOT") {
-            candidates.push(PathBuf::from(root).join("embedding"));
-        }
-        candidates.push(workspace_root().join("target/public-run/home/embedding"));
-        candidates.push(workspace_root().join("resources/bundle-root/embedding"));
-
-        for candidate in candidates {
-            if has_required_shipping_embedding_files(&candidate) {
-                return candidate;
-            }
-        }
-
-        panic!(
-            "shipping daemon tests require materialized embedding artifacts; run ./scripts/prepare-public-run.sh or set CYRUNE_TEST_SHIPPING_HOME_ROOT"
-        );
-    }
-
-    fn has_required_shipping_embedding_files(root: &Path) -> bool {
-        [
-            "exact-pins/cyrune-free-shipping.v0.1.json",
-            "artifacts/multilingual-e5-small/model.onnx",
-            "artifacts/multilingual-e5-small/tokenizer.json",
-            "artifacts/multilingual-e5-small/config.json",
-            "artifacts/multilingual-e5-small/special_tokens_map.json",
-            "artifacts/multilingual-e5-small/tokenizer_config.json",
-        ]
-        .iter()
-        .all(|relative_path| root.join(relative_path).is_file())
     }
 
     fn packaged_context(cyrune_home: &std::path::Path) -> CommandContext {

@@ -3,6 +3,7 @@
 pub mod cli;
 pub mod doctor;
 pub mod pack;
+pub mod verify;
 pub mod view;
 
 pub const CRATE_IDENTITY: &str = "cyrune-runtime-cli";

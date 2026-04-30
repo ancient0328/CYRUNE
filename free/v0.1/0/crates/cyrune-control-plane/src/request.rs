@@ -2,7 +2,7 @@
 
 use cyrune_core_contract::{
     ContractError, CorrelationId, Denial, DenialId, EvidenceId, ReasonKind, RuleId, RunId,
-    RunRejected, RunRequest,
+    RunOutcome, RunRejected, RunRequest,
 };
 
 pub fn validate_request(request: &RunRequest) -> Result<RunId, ContractError> {
@@ -28,6 +28,7 @@ pub fn build_invalid_request_rejection(
         remediation,
     )?;
     Ok(RunRejected {
+        outcome: RunOutcome::Rejected,
         response_to: request.request_id.clone(),
         correlation_id: request.correlation_id.clone(),
         run_id,

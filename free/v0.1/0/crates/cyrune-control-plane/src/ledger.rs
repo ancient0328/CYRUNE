@@ -14,6 +14,8 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
+pub const TERMINAL_BINDING_SCHEMA_VERSION: &str = "cyrune.free.terminal-binding.v1";
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EvidenceOutcome {
@@ -90,6 +92,23 @@ pub struct HashesRecord {
     pub files: BTreeMap<String, String>,
     pub prev_evidence_id: Option<EvidenceId>,
     pub prev_hash: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TerminalBindingRecord {
+    pub schema_version: String,
+    pub outcome: EvidenceOutcome,
+    pub response_to: cyrune_core_contract::RequestId,
+    pub correlation_id: cyrune_core_contract::CorrelationId,
+    pub run_id: cyrune_core_contract::RunId,
+    pub evidence_id: EvidenceId,
+    pub policy_pack_id: String,
+    pub citation_bundle_id: cyrune_core_contract::CitationBundleId,
+    pub working_hash_after: String,
+    pub evidence_manifest_hash: String,
+    pub evidence_hashes_hash: String,
+    pub working_json_hash: String,
+    pub created_at: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -443,6 +462,39 @@ pub fn write_working_projection(
     fs::rename(&tmp_path, &final_path)?;
     sync_dir(&working_dir)?;
     Ok(())
+}
+
+#[must_use]
+pub fn terminal_binding_path(cyrune_home: &Path, evidence_id: &EvidenceId) -> PathBuf {
+    cyrune_home
+        .join("ledger")
+        .join("terminal-bindings")
+        .join(format!("{}.json", evidence_id.as_str()))
+}
+
+pub fn write_terminal_binding(
+    cyrune_home: &Path,
+    record: &TerminalBindingRecord,
+) -> Result<PathBuf, LedgerError> {
+    let binding_dir = cyrune_home.join("ledger").join("terminal-bindings");
+    fs::create_dir_all(&binding_dir)?;
+    sync_dir(&binding_dir)?;
+    let final_path = terminal_binding_path(cyrune_home, &record.evidence_id);
+    let tmp_path = binding_dir.join(format!("{}.json.tmp", record.evidence_id.as_str()));
+    let bytes = canonical_json_bytes(record)?;
+    write_bytes(&tmp_path, &bytes)?;
+    fs::rename(&tmp_path, &final_path)?;
+    let _ = sync_dir(&binding_dir);
+    Ok(final_path)
+}
+
+pub fn raw_file_sha256(path: &Path) -> Result<String, LedgerError> {
+    let bytes = fs::read(path)?;
+    Ok(format!("sha256:{}", sha256_hex(&bytes)))
+}
+
+pub fn visible_working_hash(cyrune_home: &Path) -> Result<String, LedgerError> {
+    raw_file_sha256(&cyrune_home.join("working").join("working.json"))
 }
 
 fn policy_record(context: &ResolvedTurnContext, trace: &PolicyTrace) -> PolicyLedgerRecord {

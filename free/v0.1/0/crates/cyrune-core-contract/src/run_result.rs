@@ -4,8 +4,16 @@ use crate::denial::{ReasonKind, RuleId};
 use crate::id::{CitationBundleId, CorrelationId, DenialId, EvidenceId, RequestId, RunId};
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RunOutcome {
+    Accepted,
+    Rejected,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RunAccepted {
+    pub outcome: RunOutcome,
     pub response_to: RequestId,
     pub correlation_id: CorrelationId,
     pub run_id: RunId,
@@ -18,6 +26,7 @@ pub struct RunAccepted {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RunRejected {
+    pub outcome: RunOutcome,
     pub response_to: RequestId,
     pub correlation_id: CorrelationId,
     pub run_id: RunId,
