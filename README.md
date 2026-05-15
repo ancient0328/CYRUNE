@@ -53,7 +53,7 @@ Japanese companion documents do not override the English public claim boundary i
 ## Repository Contents
 
 - `README.md`: public product entry
-- `docs/`: public documentation, expected first-success output, and separated reference shelves
+- `docs/`: public documentation, expected first-success output, current references, and companion documents
 - `scripts/`: public entry scripts
 - repository root: runnable Free source tree
 
