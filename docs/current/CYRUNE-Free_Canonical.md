@@ -150,8 +150,8 @@ FreeはLLMを必須としない。
 
 No-LLMでは：
 
-* Retrievalのみ
-* Extractive summaryのみ
+* 生成LLMを呼び出さない
+* retrieved / configured / packaged materials に基づく deterministic または template-bound output を扱う
 * Gate + Ledgerは有効
 
 LLMはdetachableである。
@@ -222,7 +222,7 @@ Freeは「制御の最小単位」である。
 Freeは思想の武器である。
 
 * 制御は無料で提供する
-* より広い統治と合議は別の製品判断で扱う
+* より広い統治と合議は、この Free v0.1 public beta の明示的範囲外である
 
 制御を削ることは、CYRUNEの存在意義を削ることになる。
 

@@ -1,6 +1,6 @@
 # Problem Statement（Technical Edition）
 
-**Public Free v0.1 scope note**: この文書は構造的問題と CYRUNE の target model を説明する。public beta が enforcement-complete classification / MAC、OS-level sandbox isolation、より広い製品ライン scope、native distribution、production maturity を実装済みであるとは主張しない。
+**Public Free v0.1 scope note**: この文書は構造的問題と CYRUNE の target model を説明する。public beta が enforcement-complete classification / MAC、OS-level sandbox isolation、この Free v0.1 public beta の明示的範囲外の機能・統治、native distribution、production maturity を実装済みであるとは主張しない。
 
 **Language note**: この文書は日本語 companion です。public GitHub entry path の primary problem statement は `CYRUNE_ProblemStatement-En.md` です。
 

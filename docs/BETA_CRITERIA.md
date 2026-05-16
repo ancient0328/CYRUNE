@@ -10,10 +10,10 @@ CYRUNE Free v0.1 public beta is not a label-only wording change. It is a release
 1. tracked public source,
 2. verified carrier archive,
 3. immutable beta tag / release asset,
-4. public CI,
+4. public GitHub Actions workflow `public-ci`,
 5. public documentation,
 6. first-success runtime evidence,
-7. a matching Closed Gate Report.
+7. Closed Gate closeout evidence for the same beta line.
 
 ## 1. Beta Release Line
 
@@ -21,7 +21,7 @@ CYRUNE Free v0.1 public beta is not a label-only wording change. It is a release
 - `v0.1.0` remains the immutable public alpha snapshot.
 - `v0.1.1-beta.1` is the first public beta release-contract line.
 - A beta tag must not be moved after publication. If a beta release is withdrawn or superseded, the next attempt must use a new tag such as `v0.1.1-beta.2`.
-- The Closed Gate Report is post-release closeout evidence on `main`. It is required for public beta closeout, but it is not required to be inside the immutable release tag snapshot because the report depends on release and CI evidence created after the tag exists.
+- Closed Gate closeout evidence is post-release evidence on `main`. If the Closed Gate Report is not published in this repository, it is release closeout evidence and not part of the public-reader verification path.
 
 ## 2. Required Beta Evidence
 
@@ -33,12 +33,12 @@ A public beta claim requires all of the following evidence to exist for the same
 4. one release asset named `cyrune-free-v0.1.1-beta.1.tar.gz`,
 5. exact asset size and SHA256,
 6. carrier `RELEASE_MANIFEST.json` matching the beta asset name and package root,
-7. CI success for the beta candidate,
+7. GitHub Actions workflow `public-ci` success for the beta candidate,
 8. fresh `prepare-public-run.sh` -> `doctor.sh` -> `first-success.sh` verifier report,
 9. returned `evidence_id`, expected accepted-run evidence files, matching terminal binding marker, and visible `working/working.json` raw hash,
 10. public docs consistency scan,
 11. license / third-party notice boundary check,
-12. Closed Gate Report under the source-side public dev-docs report root `Distro/CYRUNE/free/public/v01/dev-docs/90-reports/`.
+12. Closed Gate closeout evidence for the same beta line. If the Closed Gate Report is not published in this repository, it is release closeout evidence and not part of the public-reader verification path.
 
 If any required evidence is missing or fails, the beta claim is not established.
 
@@ -70,7 +70,7 @@ It does not claim:
 - concrete signing / notarization values
 - OS-level sandbox process isolation
 - enforcement-complete classification / MAC lattice
-- broader product-line features
+- capabilities outside the explicit Free v0.1 public beta scope
 - private development or internal operational corpus
 
 ## 5. Failure Semantics
@@ -84,12 +84,12 @@ Treat the beta candidate as not established if any of the following occurs:
 - the release asset is missing,
 - asset size or SHA256 does not match the public pin,
 - carrier `RELEASE_MANIFEST.json` does not match the beta asset,
-- CI fails,
+- GitHub Actions workflow `public-ci` fails for the beta candidate,
 - `prepare-public-run.sh`, `doctor.sh`, or `first-success.sh` exits non-zero,
 - first-success verifier output omits required IDs or does not report `verified: true` and `outcome: "accepted"`,
 - expected evidence files, terminal binding marker, or visible `working/working.json` hash binding are missing,
 - public docs imply an unsupported product scope,
-- the Closed Gate Report is missing or has any Gate below `Yes`.
+- required Closed Gate closeout evidence is missing from the release closeout record or has any Gate below `Yes`.
 
 ## 6. Version Continuity
 

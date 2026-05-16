@@ -17,31 +17,29 @@ Japanese companion material is available under `docs/ja/`. Japanese companion do
 
 ## 2. Primary Reading Order
 
-1. `docs/current/CYRUNE.md`
-2. `docs/current/CYRUNE_ProblemStatement-En.md`
-3. `docs/current/CYRUNE-Free_Canonical.md`
-4. `docs/GETTING_STARTED.md`
-5. `docs/FIRST_SUCCESS_EXPECTED.md`
-6. `docs/BETA_CRITERIA.md`
-7. `docs/USER_GUIDE.md`
-8. `docs/ENGINEERING_SPEC.md`
+1. `docs/current/CYRUNE_ProblemStatement-En.md`
+2. `docs/current/CYRUNE-Free_Canonical.md`
+3. `docs/GETTING_STARTED.md`
+4. `docs/FIRST_SUCCESS_EXPECTED.md`
+5. `docs/BETA_CRITERIA.md`
+6. `docs/USER_GUIDE.md`
+7. `docs/ENGINEERING_SPEC.md`
 
 The Japanese technical problem statement at `docs/current/CYRUNE_ProblemStatement-ja.md` is a companion document, not a line-by-line translation of `docs/current/CYRUNE_ProblemStatement-En.md`.
 
 ## 3. Supplementary References
 
-Read these only when additional background is needed:
+Supplementary public references are limited to files present in this repository. Read these only when additional background is needed:
 
 1. `docs/current/CYRUNE_Free_v0.1_Diagrams.html`
-2. source-side public dev-docs at `Distro/CYRUNE/free/public/v01/dev-docs/`
+2. `docs/current/CYRUNE.md`
 
-The source-side public dev-docs tree contains development history, evidence reports, and operational notes. It does not override the public beta claim boundary, the repository publication model, or the primary reading order in this index.
+`docs/current/CYRUNE.md` describes product direction. It is not the first public beta claim authority.
 
-## 4. Source-Side Path Boundary
+## 4. Public Repository Boundary
 
-On GitHub, the repository root is the public package root.
-The source-side path `Distro/CYRUNE/free/public/v01/0/` is the local private-workspace mirror of that public package root.
-It is not a path a public GitHub reader needs to have locally.
+On GitHub, the repository root is the public package root and the runnable Free v0.1 source tree.
+Public readers do not need private-workspace paths to follow the public beta claim boundary or first-success path.
 
 ## 5. Authoritative Public Truth
 
@@ -69,7 +67,7 @@ The following must not be treated as current public truth authority:
 1. task-level roadmaps
 2. raw proof / raw validation payloads
 3. draft / superseded documents
-4. broader product-line scope outside this Free v0.1 public beta
+4. capabilities outside the explicit Free v0.1 public beta scope
 5. full Control OS product maturity
 6. native distributable packaging
 7. concrete reverse-DNS bundle identifier
@@ -78,7 +76,7 @@ The following must not be treated as current public truth authority:
 10. concrete notarization provider value
 11. signed update package delivery
 12. a `v0.1` branch as the publication model
-13. broader product-line surfaces as part of the Free repository license grant
+13. capabilities outside the explicit Free v0.1 public beta scope as part of the Free repository license grant
 
 ## 7. Shelf Meaning
 
@@ -90,7 +88,7 @@ The following must not be treated as current public truth authority:
 
 CYRUNE Free v0.1 public beta is a release-contract repository surface that explains and executes the public first-success path.
 
-This beta claim does not include production maturity, native distributable packaging, OS-level sandbox enforcement, enforcement-complete classification / MAC, broader product-line scope, signing, notarization, installer distribution, or signed update package delivery.
+This beta claim does not include production maturity, native distributable packaging, OS-level sandbox enforcement, enforcement-complete classification / MAC, capabilities outside the explicit Free v0.1 public beta scope, signing, notarization, installer distribution, or signed update package delivery.
 
 ## 9. Repository Publication Model
 

@@ -174,11 +174,11 @@ This public beta does not claim:
 - concrete signing / notarization values
 - OS-level sandbox enforcement
 - enforcement-complete classification / MAC lattice
-- broader product-line features
+- capabilities outside the explicit Free v0.1 public beta scope
 
 ## 11. Validation
 
-The public CI checks:
+The public GitHub Actions workflow `public-ci` checks:
 
 - public shell scripts parse,
 - beta release-contract static predicates,

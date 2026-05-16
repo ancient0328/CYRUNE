@@ -104,7 +104,7 @@ This first-success path does not prove:
 - concrete signing or notarization
 - OS-level sandbox process isolation
 - enforcement-complete classification / MAC lattice
-- broader product-line feature scope
+- capabilities outside the explicit Free v0.1 public beta scope
 - production maturity
 
 ## 6. Failure Reading

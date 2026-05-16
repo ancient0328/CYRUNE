@@ -10,17 +10,23 @@ CYRUNE Free v0.1 は、single-user 向けの public beta package です。
 
 この公開面では、ローカル host 上で pinned beta carrier から public-run state を準備し、`cyr doctor` を実行し、packaged Free v0.1 Control Plane path を通して no-LLM の first-success semantic verifier を 1 回実行できます。
 
-この public beta は、production maturity、native distribution、OS-level sandbox enforcement、enforcement-complete classification / MAC、より広い製品ラインの scope、signing、notarization、installer distribution を主張しません。
+この public beta は、production maturity、native distribution、OS-level sandbox enforcement、enforcement-complete classification / MAC、この Free v0.1 public beta の明示的範囲外の機能・統治、signing、notarization、installer distribution を主張しません。
 
 ## 2. リポジトリ構成
 
-公開リポジトリ root には、次の surface があります。
+公開リポジトリ root は runnable Free v0.1 source tree です。主に次を含みます。
 
 - `README.md`
 - `README.ja.md`
+- `Cargo.toml`
+- `Cargo.lock`
+- `Adapter/`
+- `CRANE-Kernel/`
+- `crates/`
 - `docs/`
+- `resources/`
 - `scripts/`
-- `free/`
+- `tests/`
 
 通常の利用導線は次の文書と script です。
 
@@ -117,4 +123,4 @@ first-success の成功が示すのは、C5 verifier が response、evidence bun
 - signing / notarization
 - OS-level sandbox enforcement
 - enforcement-complete classification / MAC lattice
-- より広い製品ラインの functionality
+- この Free v0.1 public beta の明示的範囲外の機能・統治

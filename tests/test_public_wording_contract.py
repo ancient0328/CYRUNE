@@ -62,6 +62,14 @@ FORBIDDEN_PUBLIC_PRODUCT_TERMS = [
     re.compile(r"\bPro\+?\b"),
     re.compile(r"Pro\s*/"),
 ]
+FORBIDDEN_PUBLIC_READER_PATH_PATTERNS = [
+    re.compile(r"Distro/CYRUNE/free/public/v01/dev-docs"),
+    re.compile(r"source-side public dev-docs", re.IGNORECASE),
+]
+FORBIDDEN_PUBLIC_SCOPE_SMELL_PATTERNS = [
+    re.compile(r"broader product-line", re.IGNORECASE),
+    re.compile(r"より広い製品ライン"),
+]
 
 
 class PublicWordingContractTest(unittest.TestCase):
@@ -127,6 +135,24 @@ class PublicWordingContractTest(unittest.TestCase):
         for path in self._public_authored_text_files():
             for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
                 if any(pattern.search(line) for pattern in FORBIDDEN_PUBLIC_PRODUCT_TERMS):
+                    violations.append(f"{path.relative_to(PUBLIC_ROOT)}:{lineno}:{line.strip()}")
+
+        self.assertEqual(violations, [])
+
+    def test_public_reader_surface_does_not_reference_private_source_side_paths(self) -> None:
+        violations: list[str] = []
+        for path in self._public_authored_text_files():
+            for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+                if any(pattern.search(line) for pattern in FORBIDDEN_PUBLIC_READER_PATH_PATTERNS):
+                    violations.append(f"{path.relative_to(PUBLIC_ROOT)}:{lineno}:{line.strip()}")
+
+        self.assertEqual(violations, [])
+
+    def test_public_scope_boundary_uses_repository_scope_wording(self) -> None:
+        violations: list[str] = []
+        for path in self._public_authored_text_files():
+            for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+                if any(pattern.search(line) for pattern in FORBIDDEN_PUBLIC_SCOPE_SMELL_PATTERNS):
                     violations.append(f"{path.relative_to(PUBLIC_ROOT)}:{lineno}:{line.strip()}")
 
         self.assertEqual(violations, [])

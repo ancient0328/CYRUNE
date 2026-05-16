@@ -47,7 +47,7 @@ Japanese companion documents do not override the English public claim boundary i
 
 - Sandbox scope: this beta documents and uses sandbox specification normalization / validation. It does not claim OS-level process isolation.
 - Classification / MAC scope: CYRUNE product docs describe the intended classification and MAC model. This Free v0.1 public beta does not claim enforcement-complete classification / MAC lattice or clearance governance.
-- Evidence scope: first-success creates local runtime evidence for the no-LLM path and terminal-binds the accepted evidence to `working/working.json`. It does not prove production maturity, native distribution, signing, notarization, or broader product-line governance.
+- Evidence scope: first-success creates local runtime evidence for the no-LLM path and terminal-binds the accepted evidence to `working/working.json`. It does not prove production maturity, native distribution, signing, notarization, or capabilities outside the explicit Free v0.1 public beta scope.
 - Signed update scope: product-wide docs may describe signed update or no-self-update discipline as a design direction. This Free v0.1 public beta does not ship a signed updater or signed update channel.
 
 ## Repository Contents
@@ -71,5 +71,5 @@ Third-party notices for redistributed model/tokenizer resources are tracked in [
 - Signed update package delivery
 - OS-level sandbox enforcement
 - Enforcement-complete classification / MAC lattice
-- Broader product-line features
+- Capabilities outside the explicit Free v0.1 public beta scope
 - Private development / internal operational corpus

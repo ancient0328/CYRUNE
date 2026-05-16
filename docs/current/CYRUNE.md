@@ -3,7 +3,7 @@
 ## 0. Public Entry
 
 For the current accepted public corpus of CYRUNE Free v0.1, start with `../CYRUNE_Free_Public_Index.md`.
-This page is a product overview of CYRUNE as a whole. It is not a claim that this Free v0.1 public beta implements every product-wide enforcement layer.
+This page describes product direction. It is not the first public beta claim authority. For Free v0.1 public beta scope, use `../CYRUNE_Free_Public_Index.md`, `../GETTING_STARTED.md`, and `../BETA_CRITERIA.md`.
 
 ## 1. What is CYRUNE?
 

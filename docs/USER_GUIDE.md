@@ -12,16 +12,23 @@ CYRUNE Free v0.1 is a single-user public beta package.
 
 It lets a local host prepare public-run state from the pinned beta carrier, run `cyr doctor`, and execute the no-LLM first-success semantic verifier through the packaged Free v0.1 Control Plane path.
 
-This public beta does not claim production maturity, native distribution, OS-level sandbox enforcement, enforcement-complete classification / MAC, broader product-line scope, signing, notarization, or installer distribution.
+This public beta does not claim production maturity, native distribution, OS-level sandbox enforcement, enforcement-complete classification / MAC, capabilities outside the explicit Free v0.1 public beta scope, signing, notarization, or installer distribution.
 
 ## 2. Repository Contents
 
-The public repository root contains:
+The repository root is the runnable Free v0.1 source tree. It includes:
 
 - `README.md`
+- `README.ja.md`
+- `Cargo.toml`
+- `Cargo.lock`
+- `Adapter/`
+- `CRANE-Kernel/`
+- `crates/`
 - `docs/`
+- `resources/`
 - `scripts/`
-- `free/`
+- `tests/`
 
 The normal user path uses:
 
@@ -118,4 +125,4 @@ It does not prove:
 - signing or notarization
 - OS-level sandbox enforcement
 - enforcement-complete classification / MAC lattice
-- broader product-line functionality
+- capabilities outside the explicit Free v0.1 public beta scope
