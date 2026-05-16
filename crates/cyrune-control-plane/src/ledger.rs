@@ -704,9 +704,7 @@ mod tests {
                         claim_id: cyrune_core_contract::ClaimId::parse("CLM-001").unwrap(),
                         text: "claim".to_string(),
                         claim_kind: ClaimKind::Extractive,
-                        evidence_refs: vec![EvidenceRef {
-                            evidence_id: "EVID-1".to_string(),
-                        }],
+                        evidence_refs: vec![EvidenceRef::new("EVID-1".to_string())],
                     }],
                 },
                 rr: SimpleReasoningRecord {

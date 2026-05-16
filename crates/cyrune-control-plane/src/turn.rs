@@ -37,6 +37,7 @@ const RULE_LEDGER_COMMIT_FAILED: &str = "LDG-001";
 const RULE_WORKING_UPDATE_FAILED: &str = "WUP-001";
 const RULE_WORKING_HASH_MISMATCH: &str = "WUP-002";
 const RULE_TERMINAL_BINDING_FAILED: &str = "LDG-002";
+const BOOTSTRAP_EVIDENCE_ID: &str = "EVID-BOOTSTRAP";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AcceptedTurnDraft {
@@ -728,7 +729,7 @@ fn build_no_llm_working_candidates(
             category: WorkingCandidateCategory::PolicyConstraint,
             kind: WorkingSlotKind::Constraint,
             text: "free fail-closed gate remains active".to_string(),
-            source_evidence_id: "EVID-0".to_string(),
+            source_evidence_id: BOOTSTRAP_EVIDENCE_ID.to_string(),
             source_layer: crate::memory::SourceLayer::Processing,
             updated_at: updated_at.to_string(),
             updated_at_unix_ms: 1,
@@ -737,7 +738,7 @@ fn build_no_llm_working_candidates(
             category: WorkingCandidateCategory::RequestConstraint,
             kind: WorkingSlotKind::Context,
             text: request.user_input.trim().to_string(),
-            source_evidence_id: "EVID-0".to_string(),
+            source_evidence_id: BOOTSTRAP_EVIDENCE_ID.to_string(),
             source_layer: crate::memory::SourceLayer::Processing,
             updated_at: updated_at.to_string(),
             updated_at_unix_ms: 2,
@@ -753,7 +754,7 @@ fn build_no_llm_working_candidates(
                 .source_evidence_ids
                 .first()
                 .cloned()
-                .unwrap_or_else(|| "EVID-0".to_string()),
+                .unwrap_or_else(|| BOOTSTRAP_EVIDENCE_ID.to_string()),
             source_layer: candidate.source_layer,
             updated_at: candidate.updated_at.clone(),
             updated_at_unix_ms: candidate.updated_at_unix_ms + u64::try_from(index).unwrap_or(0),
@@ -946,8 +947,9 @@ fn working_invalid_failure(message: impl Into<String>) -> FailureSpec {
 #[cfg(test)]
 mod tests {
     use super::{
-        AcceptedTurnDraft, empty_working_projection, finalize_accepted_turn,
-        first_terminal_failure_wins, run_approved_execution_adapter_path, run_no_llm_accepted_path,
+        AcceptedTurnDraft, BOOTSTRAP_EVIDENCE_ID, build_no_llm_working_candidates,
+        empty_working_projection, finalize_accepted_turn, first_terminal_failure_wins,
+        run_approved_execution_adapter_path, run_no_llm_accepted_path,
     };
     use crate::citation::{
         CitationMaterial, CitationMaterialClaim, ClaimKind, EvidenceRef, SimpleReasoningRecord,
@@ -959,7 +961,7 @@ mod tests {
         ResolvedKernelAdapters, ResolvedTurnContext, TimeoutPolicy,
     };
     use crate::resolver::ResolverInputs;
-    use crate::retrieval::QuerySummary;
+    use crate::retrieval::{QuerySummary, RetrievalSelectionResult};
     use crate::working::{
         WorkingCandidate, WorkingCandidateCategory, WorkingProjection, WorkingRebuildInput,
         WorkingSlotKind, rebuild_working,
@@ -1165,6 +1167,37 @@ printf '%s\n' "{\"adapter_id\":\"local-cli-single-process.v0.1\",\"adapter_versi
         .unwrap()
     }
 
+    #[test]
+    fn no_llm_working_uses_named_bootstrap_source_marker() {
+        let request = request();
+        let prior = empty_working_projection(&request.correlation_id, "2026-03-27T12:00:00+09:00");
+        let candidates = build_no_llm_working_candidates(
+            &request,
+            &RetrievalSelectionResult {
+                final_candidates: Vec::new(),
+                fusion_results: Vec::new(),
+                query_summary: QuerySummary {
+                    query_hash: format!("sha256:{}", "1".repeat(64)),
+                    selected_memory_ids: Vec::new(),
+                    rejected_reasons: Vec::new(),
+                },
+            },
+            &prior,
+            "2026-03-27T12:00:00+09:00",
+        );
+
+        assert!(
+            candidates
+                .iter()
+                .any(|candidate| candidate.source_evidence_id == BOOTSTRAP_EVIDENCE_ID)
+        );
+        assert!(
+            !candidates
+                .iter()
+                .any(|candidate| candidate.source_evidence_id == "EVID-0")
+        );
+    }
+
     fn write_prior_working(cyrune_home: &std::path::Path, projection: &WorkingProjection) {
         fs::create_dir_all(cyrune_home.join("working")).unwrap();
         fs::write(
@@ -1248,9 +1281,7 @@ printf '%s\n' "{\"adapter_id\":\"local-cli-single-process.v0.1\",\"adapter_versi
                     claims: vec![CitationMaterialClaim {
                         text: "claim".to_string(),
                         claim_kind: ClaimKind::Extractive,
-                        evidence_refs: vec![EvidenceRef {
-                            evidence_id: "EVID-1".to_string(),
-                        }],
+                        evidence_refs: vec![EvidenceRef::new("EVID-1".to_string())],
                     }],
                 },
                 rr_material: SimpleReasoningRecord {
@@ -1316,9 +1347,7 @@ printf '%s\n' "{\"adapter_id\":\"local-cli-single-process.v0.1\",\"adapter_versi
                     claims: vec![CitationMaterialClaim {
                         text: "claim".to_string(),
                         claim_kind: ClaimKind::Extractive,
-                        evidence_refs: vec![EvidenceRef {
-                            evidence_id: "EVID-1".to_string(),
-                        }],
+                        evidence_refs: vec![EvidenceRef::new("EVID-1".to_string())],
                     }],
                 },
                 rr_material: SimpleReasoningRecord {
@@ -1382,9 +1411,7 @@ printf '%s\n' "{\"adapter_id\":\"local-cli-single-process.v0.1\",\"adapter_versi
                     claims: vec![CitationMaterialClaim {
                         text: "claim".to_string(),
                         claim_kind: ClaimKind::Extractive,
-                        evidence_refs: vec![EvidenceRef {
-                            evidence_id: "EVID-1".to_string(),
-                        }],
+                        evidence_refs: vec![EvidenceRef::new("EVID-1".to_string())],
                     }],
                 },
                 rr_material: SimpleReasoningRecord {
@@ -1444,9 +1471,7 @@ printf '%s\n' "{\"adapter_id\":\"local-cli-single-process.v0.1\",\"adapter_versi
                     claims: vec![CitationMaterialClaim {
                         text: "claim".to_string(),
                         claim_kind: ClaimKind::Extractive,
-                        evidence_refs: vec![EvidenceRef {
-                            evidence_id: "EVID-1".to_string(),
-                        }],
+                        evidence_refs: vec![EvidenceRef::new("EVID-1".to_string())],
                     }],
                 },
                 rr_material: SimpleReasoningRecord {
@@ -1540,9 +1565,7 @@ printf '%s\n' "{\"adapter_id\":\"local-cli-single-process.v0.1\",\"adapter_versi
                     claims: vec![CitationMaterialClaim {
                         text: "claim".to_string(),
                         claim_kind: ClaimKind::Extractive,
-                        evidence_refs: vec![EvidenceRef {
-                            evidence_id: "EVID-1".to_string(),
-                        }],
+                        evidence_refs: vec![EvidenceRef::new("EVID-1".to_string())],
                     }],
                 },
                 rr_material: SimpleReasoningRecord {
@@ -1585,9 +1608,7 @@ printf '%s\n' "{\"adapter_id\":\"local-cli-single-process.v0.1\",\"adapter_versi
                     claims: vec![CitationMaterialClaim {
                         text: "claim".to_string(),
                         claim_kind: ClaimKind::Extractive,
-                        evidence_refs: vec![EvidenceRef {
-                            evidence_id: "EVID-1".to_string(),
-                        }],
+                        evidence_refs: vec![EvidenceRef::new("EVID-1".to_string())],
                     }],
                 },
                 rr_material: SimpleReasoningRecord {
@@ -1634,9 +1655,7 @@ printf '%s\n' "{\"adapter_id\":\"local-cli-single-process.v0.1\",\"adapter_versi
                     claims: vec![CitationMaterialClaim {
                         text: "claim".to_string(),
                         claim_kind: ClaimKind::Extractive,
-                        evidence_refs: vec![EvidenceRef {
-                            evidence_id: "EVID-1".to_string(),
-                        }],
+                        evidence_refs: vec![EvidenceRef::new("EVID-1".to_string())],
                     }],
                 },
                 rr_material: SimpleReasoningRecord {
@@ -1699,9 +1718,7 @@ printf '%s\n' "{\"adapter_id\":\"local-cli-single-process.v0.1\",\"adapter_versi
                     claims: vec![CitationMaterialClaim {
                         text: "claim".to_string(),
                         claim_kind: ClaimKind::Extractive,
-                        evidence_refs: vec![EvidenceRef {
-                            evidence_id: "EVID-1".to_string(),
-                        }],
+                        evidence_refs: vec![EvidenceRef::new("EVID-1".to_string())],
                     }],
                 },
                 rr_material: SimpleReasoningRecord {
@@ -1759,9 +1776,7 @@ printf '%s\n' "{\"adapter_id\":\"local-cli-single-process.v0.1\",\"adapter_versi
                     claims: vec![CitationMaterialClaim {
                         text: "claim".to_string(),
                         claim_kind: ClaimKind::Extractive,
-                        evidence_refs: vec![EvidenceRef {
-                            evidence_id: "EVID-1".to_string(),
-                        }],
+                        evidence_refs: vec![EvidenceRef::new("EVID-1".to_string())],
                     }],
                 },
                 rr_material: SimpleReasoningRecord {

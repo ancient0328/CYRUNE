@@ -695,9 +695,7 @@ mod tests {
                 claims: vec![CitationMaterialClaim {
                     text: "claim".to_string(),
                     claim_kind: ClaimKind::Extractive,
-                    evidence_refs: vec![EvidenceRef {
-                        evidence_id: "EVID-1".to_string(),
-                    }],
+                    evidence_refs: vec![EvidenceRef::new("EVID-1".to_string())],
                 }],
             }),
             rr_material: Some(SimpleReasoningRecord {
@@ -757,9 +755,7 @@ mod tests {
                 claims: vec![CitationMaterialClaim {
                     text: "claim".to_string(),
                     claim_kind: ClaimKind::Extractive,
-                    evidence_refs: vec![EvidenceRef {
-                        evidence_id: "EVID-1".to_string(),
-                    }],
+                    evidence_refs: vec![EvidenceRef::new("EVID-1".to_string())],
                 }],
             }),
             rr_material: Some(SimpleReasoningRecord {

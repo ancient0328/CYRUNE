@@ -1332,9 +1332,7 @@ fn synthesize_no_llm_draft(request: &RunRequest) -> Result<NoLlmAcceptedDraft, C
                 .map(|claim| CitationMaterialClaim {
                     text: claim.clone(),
                     claim_kind: ClaimKind::Extractive,
-                    evidence_refs: vec![EvidenceRef {
-                        evidence_id: evidence_id.clone(),
-                    }],
+                    evidence_refs: vec![EvidenceRef::new(evidence_id.clone())],
                 })
                 .collect(),
         },
@@ -1553,29 +1551,16 @@ mod tests {
         match fs::read(&source_path) {
             Ok(contents) => contents,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                let shipping_home = std::env::var_os("CYRUNE_TEST_SHIPPING_HOME_ROOT")
-                    .map(std::path::PathBuf::from)
-                    .unwrap_or_else(|| {
-                        panic!(
-                            "missing packaged embedding fixture: source={} not found; CYRUNE_TEST_SHIPPING_HOME_ROOT is not set",
-                            source_path.display()
-                        )
-                    });
-                if shipping_home.as_os_str().is_empty() || !shipping_home.is_absolute() {
-                    panic!(
-                        "CYRUNE_TEST_SHIPPING_HOME_ROOT must be an absolute path: {}",
-                        shipping_home.display()
-                    );
+                for shipping_home in shipping_fixture_roots() {
+                    let fallback_path = shipping_home.join("embedding").join(relative_path);
+                    if let Ok(contents) = fs::read(&fallback_path) {
+                        return contents;
+                    }
                 }
-                let fallback_path = shipping_home.join("embedding").join(relative_path);
-                fs::read(&fallback_path).unwrap_or_else(|fallback_error| {
-                    panic!(
-                        "missing packaged embedding fixture: source={} not found; fallback={} failed: {}",
-                        source_path.display(),
-                        fallback_path.display(),
-                        fallback_error
-                    )
-                })
+                panic!(
+                    "missing packaged embedding fixture: source={} not found; set CYRUNE_TEST_SHIPPING_HOME_ROOT or run scripts/prepare-public-run.sh",
+                    source_path.display()
+                )
             }
             Err(error) => {
                 panic!(
@@ -1585,6 +1570,29 @@ mod tests {
                 )
             }
         }
+    }
+
+    fn shipping_fixture_roots() -> Vec<std::path::PathBuf> {
+        let mut roots = Vec::new();
+        if let Some(root) = std::env::var_os("CYRUNE_TEST_SHIPPING_HOME_ROOT") {
+            let root = std::path::PathBuf::from(root);
+            if root.as_os_str().is_empty() || !root.is_absolute() {
+                panic!(
+                    "CYRUNE_TEST_SHIPPING_HOME_ROOT must be an absolute path: {}",
+                    root.display()
+                );
+            }
+            roots.push(root);
+        }
+        roots.push(
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("..")
+                .join("..")
+                .join("target")
+                .join("public-run")
+                .join("home"),
+        );
+        roots
     }
 
     fn write_packaged_distribution(

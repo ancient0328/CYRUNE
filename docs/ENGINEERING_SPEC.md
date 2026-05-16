@@ -142,6 +142,10 @@ Expected success:
 - `CYRUNE_HOME/working/working.json` exists
 - `CYRUNE_HOME/ledger/terminal-bindings/<evidence_id>.json` exists and binds the response, evidence hashes, and visible working hash
 
+`EVID-BOOTSTRAP` is a working-source bootstrap marker used before the first ledger evidence directory exists. It is not a ledger evidence directory name. Accepted or rejected ledger evidence still starts at `EVID-1`.
+
+Citation evidence references require `evidence_id`. They may also carry `doc_id`, `chunk_id`, `span`, and `quote_hash` when a caller has chunk/span-level provenance. Empty granular fields and invalid spans are rejected.
+
 ## 9. Change Impact Map
 
 Changes to the following affect public-run behavior directly:

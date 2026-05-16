@@ -17,6 +17,33 @@ pub enum ClaimKind {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EvidenceRef {
     pub evidence_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub doc_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chunk_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub span: Option<EvidenceSpan>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quote_hash: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EvidenceSpan {
+    pub start: u32,
+    pub end: u32,
+}
+
+impl EvidenceRef {
+    #[must_use]
+    pub fn new(evidence_id: impl Into<String>) -> Self {
+        Self {
+            evidence_id: evidence_id.into(),
+            doc_id: None,
+            chunk_id: None,
+            span: None,
+            quote_hash: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -114,14 +141,7 @@ pub fn validate_citation_output(
             .expect("static failure spec must be valid"));
         }
         for evidence_ref in &material_claim.evidence_refs {
-            if evidence_ref.evidence_id.trim().is_empty() {
-                return Err(FailureSpec::citation_denied(
-                    RuleId::parse("CIT-005").expect("static rule_id must be valid"),
-                    "citation bundle contains empty evidence reference",
-                    "evidence_refs の空 ID を除去して再実行する",
-                )
-                .expect("static failure spec must be valid"));
-            }
+            validate_evidence_ref(evidence_ref)?;
             used_evidence.insert(evidence_ref.evidence_id.clone());
         }
         claims.push(CitationClaim {
@@ -169,6 +189,45 @@ pub fn validate_citation_output(
         },
         rr: rr_material.clone(),
     })
+}
+
+fn validate_evidence_ref(evidence_ref: &EvidenceRef) -> Result<(), FailureSpec> {
+    if evidence_ref.evidence_id.trim().is_empty() {
+        return Err(FailureSpec::citation_denied(
+            RuleId::parse("CIT-005").expect("static rule_id must be valid"),
+            "citation bundle contains empty evidence reference",
+            "evidence_refs の空 ID を除去して再実行する",
+        )
+        .expect("static failure spec must be valid"));
+    }
+    for value in [
+        &evidence_ref.doc_id,
+        &evidence_ref.chunk_id,
+        &evidence_ref.quote_hash,
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if value.trim().is_empty() {
+            return Err(FailureSpec::citation_denied(
+                RuleId::parse("CIT-005").expect("static rule_id must be valid"),
+                "citation bundle contains empty granular evidence reference field",
+                "doc_id / chunk_id / quote_hash の空値を除去して再実行する",
+            )
+            .expect("static failure spec must be valid"));
+        }
+    }
+    if let Some(span) = &evidence_ref.span
+        && span.start >= span.end
+    {
+        return Err(FailureSpec::citation_denied(
+            RuleId::parse("CIT-005").expect("static rule_id must be valid"),
+            "citation bundle contains invalid evidence span",
+            "span.start < span.end となる evidence span に修正して再実行する",
+        )
+        .expect("static failure spec must be valid"));
+    }
+    Ok(())
 }
 
 impl CitationBundle {
@@ -309,8 +368,8 @@ fn canonical_json_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>, CitationErro
 #[cfg(test)]
 mod tests {
     use super::{
-        CitationMaterial, CitationMaterialClaim, ClaimKind, EvidenceRef, SimpleReasoningRecord,
-        validate_citation_output,
+        CitationMaterial, CitationMaterialClaim, ClaimKind, EvidenceRef, EvidenceSpan,
+        SimpleReasoningRecord, validate_citation_output,
     };
     use cyrune_core_contract::CorrelationId;
 
@@ -348,16 +407,12 @@ mod tests {
                     CitationMaterialClaim {
                         text: "first claim".to_string(),
                         claim_kind: ClaimKind::Extractive,
-                        evidence_refs: vec![EvidenceRef {
-                            evidence_id: "EVID-1".to_string(),
-                        }],
+                        evidence_refs: vec![EvidenceRef::new("EVID-1".to_string())],
                     },
                     CitationMaterialClaim {
                         text: "second claim".to_string(),
                         claim_kind: ClaimKind::Derived,
-                        evidence_refs: vec![EvidenceRef {
-                            evidence_id: "EVID-2".to_string(),
-                        }],
+                        evidence_refs: vec![EvidenceRef::new("EVID-2".to_string())],
                     },
                 ],
             },
@@ -373,5 +428,74 @@ mod tests {
         assert_eq!(validated.bundle.claims.len(), 2);
         assert_eq!(validated.bundle.claims[0].claim_id.as_str(), "CLM-001");
         assert_eq!(validated.bundle.claims[1].claim_id.as_str(), "CLM-002");
+    }
+
+    #[test]
+    fn granular_evidence_ref_fields_are_preserved_when_present() {
+        let mut evidence_ref = EvidenceRef::new("EVID-1");
+        evidence_ref.doc_id = Some("DOC-1".to_string());
+        evidence_ref.chunk_id = Some("CHUNK-1".to_string());
+        evidence_ref.span = Some(EvidenceSpan { start: 5, end: 12 });
+        evidence_ref.quote_hash = Some(format!("sha256:{}", "a".repeat(64)));
+
+        let validated = validate_citation_output(
+            &CorrelationId::parse("RUN-20260327-0203").unwrap(),
+            "- granular claim",
+            &CitationMaterial {
+                claims: vec![CitationMaterialClaim {
+                    text: "granular claim".to_string(),
+                    claim_kind: ClaimKind::Extractive,
+                    evidence_refs: vec![evidence_ref],
+                }],
+            },
+            &SimpleReasoningRecord {
+                claims: vec!["granular claim".to_string()],
+                decisions: Vec::new(),
+                assumptions: Vec::new(),
+                actions: Vec::new(),
+                citations_used: vec!["EVID-1".to_string()],
+            },
+        )
+        .unwrap();
+
+        let evidence_ref = &validated.bundle.claims[0].evidence_refs[0];
+        assert_eq!(evidence_ref.doc_id.as_deref(), Some("DOC-1"));
+        assert_eq!(evidence_ref.chunk_id.as_deref(), Some("CHUNK-1"));
+        assert_eq!(evidence_ref.span, Some(EvidenceSpan { start: 5, end: 12 }));
+        assert!(
+            evidence_ref
+                .quote_hash
+                .as_deref()
+                .unwrap()
+                .starts_with("sha256:")
+        );
+    }
+
+    #[test]
+    fn invalid_granular_evidence_span_is_rejected() {
+        let mut evidence_ref = EvidenceRef::new("EVID-1");
+        evidence_ref.span = Some(EvidenceSpan { start: 12, end: 5 });
+
+        let error = validate_citation_output(
+            &CorrelationId::parse("RUN-20260327-0204").unwrap(),
+            "- bad span",
+            &CitationMaterial {
+                claims: vec![CitationMaterialClaim {
+                    text: "bad span".to_string(),
+                    claim_kind: ClaimKind::Extractive,
+                    evidence_refs: vec![evidence_ref],
+                }],
+            },
+            &SimpleReasoningRecord {
+                claims: vec!["bad span".to_string()],
+                decisions: Vec::new(),
+                assumptions: Vec::new(),
+                actions: Vec::new(),
+                citations_used: vec!["EVID-1".to_string()],
+            },
+        )
+        .unwrap_err();
+
+        assert_eq!(error.rule_id.as_str(), "CIT-005");
     }
 }
